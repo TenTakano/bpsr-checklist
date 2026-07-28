@@ -2,7 +2,7 @@ import './App.css'
 
 function App() {
   return (
-    <main>
+    <main className="app-layout">
       <h1>BPSR Checklist</h1>
       <p>
         Blue Protocol: Star Resonance のデイリー/ウィークリータスク管理ツール
