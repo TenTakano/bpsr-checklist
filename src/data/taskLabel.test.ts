@@ -20,7 +20,7 @@ describe('getTaskLabel', () => {
   it('既知の id には日本語ラベルを返す', () => {
     const task = buildTask()
     expect(getTaskLabel(task)).toBe(
-      '🎁 ミステリーストア（好きな物を購入）| シーズンパスで+1回更新',
+      '🎁 神秘ストア（好きな物を購入）| シーズンパスで+1回更新',
     )
   })
 
