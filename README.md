@@ -6,6 +6,27 @@ Blue Protocol: Star Resonance のデイリー/ウィークリータスク管理�
 
 タスク定義は [Teawase/blue-protocol-checklist](https://github.com/Teawase/blue-protocol-checklist)（MIT License）を参照元としています。
 
+## 開発
+
+パッケージマネージャは pnpm を使用します。
+
+```sh
+pnpm install
+pnpm dev
+```
+
+### スクリプト
+
+| コマンド            | 内容                               |
+| ------------------- | ---------------------------------- |
+| `pnpm dev`          | 開発サーバーを起動                 |
+| `pnpm build`        | 本番用ビルド（`dist/` に出力）     |
+| `pnpm preview`      | ビルド成果物をローカルでプレビュー |
+| `pnpm lint`         | ESLint によるチェック              |
+| `pnpm format`       | Prettier によるフォーマット        |
+| `pnpm format:check` | Prettier のフォーマットチェック    |
+| `pnpm test`         | Vitest によるテスト実行            |
+
 ## License
 
 MIT
