@@ -1,4 +1,4 @@
-import type { Character } from './schema'
+import type { Character, ResetState } from './schema'
 
 // Store is the app's domain state type, distinct in shape from StoreSchema
 // (whose characters/progress fields hold pre-validation unknown values), so
@@ -8,4 +8,5 @@ export interface Store {
   taskDataVersion: string | null
   characters: Character[]
   progress: Record<string, Record<string, number>>
+  resetState?: ResetState
 }

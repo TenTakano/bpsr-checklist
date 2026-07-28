@@ -2,6 +2,7 @@ import upstreamTasksDocument from '../data/upstreamTasks.json'
 import {
   CharacterSchema,
   ProgressValueSchema,
+  ResetStateSchema,
   StoreSchema,
   type Character,
 } from './schema'
@@ -9,6 +10,7 @@ import type { Store } from './types'
 
 export const STORAGE_KEY = 'bpsr-checklist:store'
 export const BACKUP_STORAGE_KEY = 'bpsr-checklist:store.backup'
+export const RESET_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.reset-backup'
 
 export const createEmptyStore = (): Store => ({
   schemaVersion: 1,
@@ -92,9 +94,18 @@ const extraTopLevelFields = (
       ([key]) =>
         key !== 'characters' &&
         key !== 'progress' &&
+        key !== 'resetState' &&
         !UNSAFE_OBJECT_KEYS.has(key),
     ),
   )
+
+// An invalid resetState degrades to "absent" (undefined) rather than
+// rejecting the whole store, so the reducer's evaluateResetState treats it
+// as needing initialization only, never a destructive reset.
+const rescueResetState = (raw: unknown): Store['resetState'] => {
+  const result = ResetStateSchema.safeParse(raw)
+  return result.success ? result.data : undefined
+}
 
 export const loadStore = (): LoadResult => {
   let raw: string | null
@@ -121,6 +132,7 @@ export const loadStore = (): LoadResult => {
 
   const characters = rescueCharacters(topLevel.data.characters)
   const progress = rescueProgress(topLevel.data.progress, characters)
+  const resetState = rescueResetState(topLevel.data.resetState)
 
   return {
     status: 'ok',
@@ -130,6 +142,7 @@ export const loadStore = (): LoadResult => {
       taskDataVersion: topLevel.data.taskDataVersion,
       characters,
       progress,
+      resetState,
     },
   }
 }
@@ -141,4 +154,47 @@ export const saveStore = (store: Store): SaveResult => {
   } catch (error) {
     return { status: 'error', error }
   }
+}
+
+export const backupResetSnapshot = (
+  removedProgress: Store['progress'],
+): SaveResult => {
+  try {
+    localStorage.setItem(
+      RESET_BACKUP_STORAGE_KEY,
+      JSON.stringify({
+        backedUpAt: new Date().toISOString(),
+        progress: removedProgress,
+      }),
+    )
+    return { status: 'ok' }
+  } catch (error) {
+    return { status: 'error', error }
+  }
+}
+
+export const diffRemovedProgress = (
+  previousProgress: Store['progress'],
+  nextProgress: Store['progress'],
+): Store['progress'] => {
+  const removed: Store['progress'] = {}
+  for (const [characterId, previousTasks] of Object.entries(previousProgress)) {
+    if (UNSAFE_OBJECT_KEYS.has(characterId)) {
+      continue
+    }
+    const nextTasks = nextProgress[characterId] ?? {}
+    const removedTasks: Record<string, number> = {}
+    for (const [taskId, value] of Object.entries(previousTasks)) {
+      if (UNSAFE_OBJECT_KEYS.has(taskId)) {
+        continue
+      }
+      if (!Object.hasOwn(nextTasks, taskId)) {
+        removedTasks[taskId] = value
+      }
+    }
+    if (Object.keys(removedTasks).length > 0) {
+      removed[characterId] = removedTasks
+    }
+  }
+  return removed
 }

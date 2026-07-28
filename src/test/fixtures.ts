@@ -8,7 +8,7 @@ export const emptyStore = (): Store => ({
 })
 
 export const storeWithCharacter = (
-  overrides: Partial<Pick<Store, 'progress'>> = {},
+  overrides: Partial<Pick<Store, 'progress' | 'resetState'>> = {},
 ): Store => ({
   schemaVersion: 1,
   taskDataVersion: 'test-commit',
