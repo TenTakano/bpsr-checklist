@@ -8,7 +8,7 @@ Blue Protocol: Star Resonance のデイリー/ウィークリータスク管理�
 
 ## 開発
 
-パッケージマネージャは pnpm を使用します。
+Node.js は `^22.13.0 || >=24` が必要です。パッケージマネージャは pnpm を使用します。
 
 ```sh
 pnpm install
@@ -27,6 +27,6 @@ pnpm dev
 | `pnpm format:check` | Prettier のフォーマットチェック    |
 | `pnpm test`         | Vitest によるテスト実行            |
 
-## License
+## ライセンス
 
 MIT
