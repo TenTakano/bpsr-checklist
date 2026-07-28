@@ -7,6 +7,7 @@ import {
 } from '../store/actions'
 import { useStore } from '../store/context'
 import { MAX_CHARACTER_NAME_LENGTH } from '../store/schema'
+import { NO_CHARACTERS_MESSAGE } from './messages'
 
 export function CharacterManager() {
   const { store, status, message, dispatch } = useStore()
@@ -80,7 +81,7 @@ export function CharacterManager() {
       </form>
 
       {store.characters.length === 0 ? (
-        <p>キャラクターがまだ登録されていません。</p>
+        <p>{NO_CHARACTERS_MESSAGE}</p>
       ) : (
         <ul>
           {store.characters.map((character) => (
