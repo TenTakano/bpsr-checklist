@@ -18,6 +18,20 @@ pnpm extract -- /path/to/script.js --upstream-commit <sha>
 - `--upstream-commit` は省略可能です。指定した場合、生成される JSON の `upstreamCommit` に反映されます。
 - 出力先は常に `src/data/upstreamTasks.json` で、無条件に上書きされます。
 
+表示用の日本語ラベルは `src/data/labels.ja.json` でローカル管理しています。
+
+### upstream 追従時の日本語ラベル更新
+
+upstream のタスクが追加・削除された際の手順:
+
+1. `pnpm extract` で `src/data/upstreamTasks.json` を再生成
+2. `src/data/labels.ja.json` も追従して更新
+
+注意点:
+
+- タスク id の追加・削除を怠ると `src/data/taskLabel.test.ts` のテストが失敗します
+- id が変わらずラベル文言のみが変更された場合、このテストでは検出されません
+
 ## 開発
 
 Node.js は `^22.13.0 || >=24` が必要です。パッケージマネージャは pnpm を使用します。
