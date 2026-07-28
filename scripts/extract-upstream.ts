@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import {
+  FORBIDDEN_IDENTIFIER_KEYS,
   TaskSchema,
   UpstreamTasksDocumentSchema,
   type Task,
@@ -48,27 +49,6 @@ function evaluateLiteral(node: ts.Expression): LiteralValue {
   )
 }
 
-export function evaluateLiteralExpression(
-  expressionSource: string,
-): LiteralValue {
-  const sourceFile = ts.createSourceFile(
-    'literal-fixture.ts',
-    `const value = ${expressionSource}`,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  )
-  const [statement] = sourceFile.statements
-  if (!statement || !ts.isVariableStatement(statement)) {
-    throw new ExtractionError(`式を解析できませんでした: ${expressionSource}`)
-  }
-  const [declaration] = statement.declarationList.declarations
-  if (!declaration?.initializer) {
-    throw new ExtractionError(`式を解析できませんでした: ${expressionSource}`)
-  }
-  return evaluateLiteral(declaration.initializer)
-}
-
 function evaluateObjectLiteral(
   node: ts.Expression,
 ): Record<string, LiteralValue> {
@@ -90,6 +70,9 @@ function evaluateObjectLiteral(
     if (key === undefined) {
       throw new ExtractionError(`未対応のプロパティ名です: ${name.getText()}`)
     }
+    if (FORBIDDEN_IDENTIFIER_KEYS.has(key)) {
+      throw new ExtractionError(`未対応のプロパティ名です: ${key}`)
+    }
     result[key] = evaluateLiteral(property.initializer)
   }
   return result
@@ -101,7 +84,7 @@ function findTaskArrayLiteral(
 ): ts.ArrayLiteralExpression {
   let found: ts.ArrayLiteralExpression | undefined
 
-  const visit = (node: ts.Node): void => {
+  function visit(node: ts.Node): void {
     if (found) return
     if (
       ts.isVariableDeclaration(node) &&
@@ -188,6 +171,8 @@ export function parseArgs(argv: string[]): CliArgs {
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--') {
+      // The `--` in `pnpm run <script> -- <args>` is a separator inserted by
+      // pnpm; it doesn't need to be forwarded as an argument, so ignore it.
       continue
     }
     if (arg === '--upstream-commit') {
