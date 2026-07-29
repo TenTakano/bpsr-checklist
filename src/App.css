@@ -64,9 +64,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  min-height: 100svh;
   gap: 16px;
-  text-align: center;
   padding: 0 20px;
 }
 
@@ -124,4 +124,161 @@
 
 .modal-close:hover {
   border-color: var(--accent);
+}
+
+.app-intro {
+  text-align: center;
+}
+
+.matrix-view {
+  width: 100%;
+}
+
+.matrix-empty {
+  text-align: center;
+}
+
+.matrix-section {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.matrix-scroll {
+  max-height: 42svh;
+  overflow: auto;
+  border: 1px solid var(--matrix-border);
+}
+
+.matrix-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.9rem;
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 6px 10px;
+  background: var(--bg);
+  box-shadow:
+    inset -1px 0 0 var(--matrix-border),
+    inset 0 -1px 0 var(--matrix-border);
+  white-space: nowrap;
+}
+
+.matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  max-width: 140px;
+}
+
+.matrix-table thead th:first-child,
+.matrix-table .matrix-corner-cell {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  text-align: left;
+}
+
+.matrix-table .matrix-task-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  max-width: 320px;
+  border-left: 4px solid transparent;
+}
+
+.matrix-character-name {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.matrix-task-label-text {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.matrix-optional-badge {
+  margin-left: 6px;
+  font-size: 0.75em;
+  color: var(--text);
+}
+
+.matrix-row {
+  opacity: 1;
+}
+
+.matrix-row--optional {
+  opacity: 0.65;
+}
+
+.matrix-cell {
+  text-align: center;
+}
+
+.matrix-toggle {
+  width: 100%;
+  min-width: 40px;
+  height: 32px;
+  border: 1px solid var(--matrix-border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.matrix-toggle--done {
+  background: var(--matrix-complete-bg);
+  color: var(--matrix-complete-fg);
+  border-color: var(--matrix-complete-bg);
+}
+
+.matrix-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.matrix-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.matrix-counter-button {
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  border: 1px solid var(--matrix-border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.matrix-counter-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.matrix-counter-value {
+  min-width: 2.5em;
+  text-align: center;
+}
+
+.matrix-counter-value--over {
+  color: var(--matrix-over-color);
+  font-weight: 600;
 }
