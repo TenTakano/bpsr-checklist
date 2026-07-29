@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import App from './App'
 
 describe('App', () => {
-  it('renders the BPSR Checklist heading', () => {
+  it('BPSR Checklist の見出しを表示する', () => {
     render(<App />)
     expect(
       screen.getByRole('heading', { name: 'BPSR Checklist' }),
