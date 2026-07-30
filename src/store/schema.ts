@@ -21,13 +21,22 @@ export const ResetStateSchema = z.strictObject({
 
 export type ResetState = z.infer<typeof ResetStateSchema>
 
-// resetState is left as z.unknown().optional() rather than ResetStateSchema
-// so an invalid value degrades to "absent" (see rescueResetState in
-// persistence.ts) instead of failing the whole top-level parse.
+export const TaskOrderSchema = z.strictObject({
+  daily: z.array(z.string()),
+  weekly: z.array(z.string()),
+})
+
+export type TaskOrder = z.infer<typeof TaskOrderSchema>
+
+// resetState/taskOrder are left as z.unknown().optional() rather than their
+// dedicated schemas so an invalid value degrades to "absent" (see
+// rescueResetState/rescueTaskOrder in persistence.ts) instead of failing the
+// whole top-level parse.
 export const StoreSchema = z.looseObject({
   schemaVersion: z.number().int().min(1),
   taskDataVersion: z.string().min(1).nullable(),
   characters: z.array(z.unknown()),
   progress: z.record(z.string(), z.record(z.string(), z.unknown())),
   resetState: z.unknown().optional(),
+  taskOrder: z.unknown().optional(),
 })

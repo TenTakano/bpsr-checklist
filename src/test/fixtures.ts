@@ -16,7 +16,7 @@ export const DEFAULT_CHARACTER: Character = {
 
 export const storeWithCharacter = (
   overrides: Partial<
-    Pick<Store, 'characters' | 'progress' | 'resetState'>
+    Pick<Store, 'characters' | 'progress' | 'resetState' | 'taskOrder'>
   > = {},
 ): Store => ({
   schemaVersion: 1,

@@ -346,6 +346,96 @@ describe('loadStore', () => {
     }
   })
 
+  it('round-trips a valid taskOrder through save and load', () => {
+    const store = storeWithCharacter({
+      progress: {},
+      taskOrder: { daily: ['daily_b', 'daily_a'], weekly: ['weekly_a'] },
+    })
+    const saveResult = saveStore(store)
+    expect(saveResult.status).toBe('ok')
+
+    const loadResult = loadStore()
+    expect(loadResult.status).toBe('ok')
+    if (loadResult.status === 'ok') {
+      expect(loadResult.store.taskOrder).toEqual(store.taskOrder)
+    }
+  })
+
+  it('omits taskOrder entirely when it was never stored', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.taskOrder).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent taskOrder (without wiping the rest of the store) when a field holds the wrong type', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      taskOrder: { daily: 42, weekly: ['weekly_a'] },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.taskOrder).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('falls back to an absent taskOrder when an array element is not a string', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      taskOrder: { daily: ['daily_a', 3], weekly: [] },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.taskOrder).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent taskOrder when it is a bare array instead of a { daily, weekly } object', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      taskOrder: ['daily_a', 'daily_b'],
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.taskOrder).toBeUndefined()
+    }
+  })
+
   it("preserves a well-formed resetState even when it points to a future period (filtering is the reducer's responsibility, not persistence)", () => {
     const raw = JSON.stringify({
       schemaVersion: 1,
