@@ -30,13 +30,6 @@ if (COUNTER_TASK_MAX <= 1) {
   )
 }
 
-const OPTIONAL_TASK = upstreamTasksDocument.daily.find((task) => task.optional)
-if (!OPTIONAL_TASK) {
-  throw new Error(
-    'upstreamTasksDocument.daily must contain at least one optional task for this test',
-  )
-}
-
 const CHARACTER_NAME = DEFAULT_CHARACTER.name
 const CHARACTER_ID = DEFAULT_CHARACTER.id
 
@@ -120,6 +113,7 @@ describe('MatrixView / toggle cells (maxProgress = 1)', () => {
       name: `${CHARACTER_NAME} ${getTaskLabel(upstreamTasksDocument.daily[0])}`,
     })
     expect(button).toHaveAttribute('aria-pressed', 'true')
+    expect(button).toHaveClass('matrix-toggle--done')
     await userEvent.click(button)
     expect(dispatch).toHaveBeenCalledWith(
       setProgress(CHARACTER_ID, TOGGLE_TASK_ID, 0),
@@ -144,7 +138,7 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
     )
   })
 
-  it('disables the increment button once the value reaches maxProgress', () => {
+  it('disables the increment button and marks the value complete once it reaches maxProgress', () => {
     renderWithContext({
       store: storeWithCharacter({
         progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: COUNTER_TASK_MAX } },
@@ -158,9 +152,10 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
     })
     expect(increment).toBeDisabled()
     expect(decrement).toBeEnabled()
-    expect(
-      screen.getByText(`${COUNTER_TASK_MAX}/${COUNTER_TASK_MAX}`),
-    ).toBeInTheDocument()
+    const valueDisplay = screen.getByText(
+      `${COUNTER_TASK_MAX}/${COUNTER_TASK_MAX}`,
+    )
+    expect(valueDisplay).toHaveClass('matrix-counter-value--complete')
   })
 
   it('shows an over-max indicator and keeps increment disabled when upstream shrank below the stored value', () => {
@@ -182,15 +177,6 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
         name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を減らす`,
       }),
     ).toBeEnabled()
-  })
-})
-
-describe('MatrixView / optional tasks', () => {
-  it('marks optional task rows with a thin-display class and badge', () => {
-    renderWithContext({ store: storeWithCharacter() })
-    const row = screen.getByTitle(getTaskLabel(OPTIONAL_TASK)).closest('tr')
-    expect(row).toHaveClass('matrix-row--optional')
-    expect(screen.getAllByText('任意').length).toBeGreaterThan(0)
   })
 })
 

@@ -105,13 +105,7 @@ function MatrixSection({
           </thead>
           <tbody>
             {tasks.map((task) => (
-              <tr
-                key={task.id}
-                className={classNames(
-                  'matrix-row',
-                  task.optional && 'matrix-row--optional',
-                )}
-              >
+              <tr key={task.id} className="matrix-row">
                 <th
                   scope="row"
                   className="matrix-task-label"
@@ -121,9 +115,6 @@ function MatrixSection({
                   <span className="matrix-task-label-text">
                     {getTaskLabel(task)}
                   </span>
-                  {task.optional && (
-                    <span className="matrix-optional-badge">任意</span>
-                  )}
                 </th>
                 {characters.map((character) => (
                   <MatrixCell
@@ -175,13 +166,12 @@ function MatrixCell({
           onClick={() =>
             dispatch(setProgress(character.id, task.id, isDone ? 0 : 1))
           }
-        >
-          {isDone ? '✓' : ''}
-        </button>
+        />
       </td>
     )
   }
 
+  const isComplete = value === task.maxProgress
   const isOverMax = value > task.maxProgress
   const canDecrement = !isReadOnly && value > 0
   const canIncrement = !isReadOnly && value < task.maxProgress
@@ -203,7 +193,9 @@ function MatrixCell({
         <span
           className={classNames(
             'matrix-counter-value',
-            isOverMax && 'matrix-counter-value--over',
+            isOverMax
+              ? 'matrix-counter-value--over'
+              : isComplete && 'matrix-counter-value--complete',
           )}
         >
           {value}/{task.maxProgress}
