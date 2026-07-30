@@ -9,6 +9,7 @@ import {
   removeCharacter,
   renameCharacter,
   setProgress,
+  setTaskHidden,
 } from './actions'
 import { evaluateResetState, reducer } from './reducer'
 
@@ -227,6 +228,40 @@ describe('reducer / moveTask', () => {
     // (ghost_task-free) taskOrder at all.
     const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[0], 5))
     expect(result.taskOrder?.daily).not.toContain('ghost_task')
+  })
+})
+
+describe('reducer / setTaskHidden', () => {
+  it('adds a taskId to hiddenTaskIds when hiding a visible task', () => {
+    const store = emptyStore()
+    const result = reducer(store, setTaskHidden(DAILY_TASK_ID, true))
+    expect(result.hiddenTaskIds).toEqual([DAILY_TASK_ID])
+  })
+
+  it('removes a taskId from hiddenTaskIds when unhiding it', () => {
+    const store = storeWithCharacter({ hiddenTaskIds: [DAILY_TASK_ID] })
+    const result = reducer(store, setTaskHidden(DAILY_TASK_ID, false))
+    expect(result.hiddenTaskIds).toEqual([])
+  })
+
+  it('preserves other hidden ids untouched', () => {
+    const store = storeWithCharacter({
+      hiddenTaskIds: [DAILY_TASK_ID, WEEKLY_TASK_ID],
+    })
+    const result = reducer(store, setTaskHidden(DAILY_TASK_ID, false))
+    expect(result.hiddenTaskIds).toEqual([WEEKLY_TASK_ID])
+  })
+
+  it('is a no-op when hiding a task that is already hidden', () => {
+    const store = storeWithCharacter({ hiddenTaskIds: [DAILY_TASK_ID] })
+    const result = reducer(store, setTaskHidden(DAILY_TASK_ID, true))
+    expect(result).toBe(store)
+  })
+
+  it('is a no-op when unhiding a task that is not hidden', () => {
+    const store = emptyStore()
+    const result = reducer(store, setTaskHidden(DAILY_TASK_ID, false))
+    expect(result).toBe(store)
   })
 })
 

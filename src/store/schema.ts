@@ -28,10 +28,12 @@ export const TaskOrderSchema = z.strictObject({
 
 export type TaskOrder = z.infer<typeof TaskOrderSchema>
 
-// resetState/taskOrder are left as z.unknown().optional() rather than their
-// dedicated schemas so an invalid value degrades to "absent" (see
-// rescueResetState/rescueTaskOrder in persistence.ts) instead of failing the
-// whole top-level parse.
+export const HiddenTaskIdsSchema = z.array(z.string())
+
+// resetState/taskOrder/hiddenTaskIds are left as z.unknown().optional()
+// rather than their dedicated schemas so an invalid value degrades to
+// "absent" (see rescueResetState/rescueTaskOrder/rescueHiddenTaskIds in
+// persistence.ts) instead of failing the whole top-level parse.
 export const StoreSchema = z.looseObject({
   schemaVersion: z.number().int().min(1),
   taskDataVersion: z.string().min(1).nullable(),
@@ -39,4 +41,5 @@ export const StoreSchema = z.looseObject({
   progress: z.record(z.string(), z.record(z.string(), z.unknown())),
   resetState: z.unknown().optional(),
   taskOrder: z.unknown().optional(),
+  hiddenTaskIds: z.unknown().optional(),
 })

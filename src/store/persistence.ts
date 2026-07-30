@@ -1,6 +1,7 @@
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import {
   CharacterSchema,
+  HiddenTaskIdsSchema,
   ProgressValueSchema,
   ResetStateSchema,
   StoreSchema,
@@ -97,6 +98,7 @@ const extraTopLevelFields = (
         key !== 'progress' &&
         key !== 'resetState' &&
         key !== 'taskOrder' &&
+        key !== 'hiddenTaskIds' &&
         !UNSAFE_OBJECT_KEYS.has(key),
     ),
   )
@@ -114,6 +116,14 @@ const rescueResetState = (raw: unknown): Store['resetState'] => {
 // order instead of losing the rest of the store.
 const rescueTaskOrder = (raw: unknown): Store['taskOrder'] => {
   const result = TaskOrderSchema.safeParse(raw)
+  return result.success ? result.data : undefined
+}
+
+// An invalid hiddenTaskIds degrades to "absent" (undefined) rather than
+// rejecting the whole store, so the MatrixView/TaskVisibility fall back to
+// showing every task instead of losing the rest of the store.
+const rescueHiddenTaskIds = (raw: unknown): Store['hiddenTaskIds'] => {
+  const result = HiddenTaskIdsSchema.safeParse(raw)
   return result.success ? result.data : undefined
 }
 
@@ -144,6 +154,7 @@ export const loadStore = (): LoadResult => {
   const progress = rescueProgress(topLevel.data.progress, characters)
   const resetState = rescueResetState(topLevel.data.resetState)
   const taskOrder = rescueTaskOrder(topLevel.data.taskOrder)
+  const hiddenTaskIds = rescueHiddenTaskIds(topLevel.data.hiddenTaskIds)
 
   return {
     status: 'ok',
@@ -155,6 +166,7 @@ export const loadStore = (): LoadResult => {
       progress,
       resetState,
       taskOrder,
+      hiddenTaskIds,
     },
   }
 }
