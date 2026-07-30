@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
+import { RECOVERED_MESSAGE } from './store/StoreProvider'
+import { STORAGE_KEY } from './store/persistence'
 
 describe('App', () => {
   it('BPSR Checklist の見出しを表示する', () => {
@@ -76,6 +78,16 @@ describe('App / キャラクター管理モーダル', () => {
       throw new Error('overlay not found')
     }
     await user.click(overlay)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('App / ステータスバナー', () => {
+  it('モーダルを開かなくてもバナーが表示される', () => {
+    localStorage.setItem(STORAGE_KEY, '{not valid json')
+    render(<App />)
+
+    expect(screen.getByRole('status')).toHaveTextContent(RECOVERED_MESSAGE)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

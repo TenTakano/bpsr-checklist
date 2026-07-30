@@ -2,6 +2,7 @@ import './App.css'
 import { useRef, useState } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { CharacterManagerModal } from './components/CharacterManagerModal'
+import { StatusBanner } from './components/StatusBanner'
 import { StoreProvider } from './store/StoreProvider'
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
             </button>
           </div>
         </header>
+        <StatusBanner />
         <main className="app-layout">
           <h1>BPSR Checklist</h1>
           <p>

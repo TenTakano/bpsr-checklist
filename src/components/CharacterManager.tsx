@@ -9,7 +9,7 @@ import { useStore } from '../store/context'
 import { MAX_CHARACTER_NAME_LENGTH } from '../store/schema'
 
 export function CharacterManager() {
-  const { store, status, message, dispatch } = useStore()
+  const { store, status, dispatch } = useStore()
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -63,8 +63,6 @@ export function CharacterManager() {
 
   return (
     <section aria-label="キャラクター管理">
-      {message !== null && <p role="status">{message}</p>}
-
       <form onSubmit={handleAdd}>
         <label htmlFor="new-character-name">キャラクター名</label>
         <input
