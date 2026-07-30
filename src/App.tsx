@@ -1,18 +1,18 @@
 import './App.css'
 import { useRef, useState } from 'react'
 import { useTheme } from './hooks/useTheme'
-import { CharacterManagerModal } from './components/CharacterManagerModal'
+import { SettingsModal } from './components/SettingsModal'
 import { StatusBanner } from './components/StatusBanner'
 import { MatrixView } from './components/MatrixView'
 import { StoreProvider } from './store/StoreProvider'
 
 function App() {
   const { theme, toggleTheme } = useTheme()
-  const [isCharacterManagerOpen, setIsCharacterManagerOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const openButtonRef = useRef<HTMLButtonElement>(null)
 
-  const closeCharacterManager = () => {
-    setIsCharacterManagerOpen(false)
+  const closeSettings = () => {
+    setIsSettingsOpen(false)
     openButtonRef.current?.focus()
   }
 
@@ -24,11 +24,11 @@ function App() {
             <button
               type="button"
               ref={openButtonRef}
-              className="character-manager-toggle"
-              onClick={() => setIsCharacterManagerOpen(true)}
-              aria-label="キャラクター管理を開く"
+              className="settings-toggle"
+              onClick={() => setIsSettingsOpen(true)}
+              aria-label="設定を開く"
             >
-              キャラクター管理
+              ⚙
             </button>
             <button
               type="button"
@@ -55,9 +55,7 @@ function App() {
           </header>
           <MatrixView />
         </main>
-        {isCharacterManagerOpen && (
-          <CharacterManagerModal onClose={closeCharacterManager} />
-        )}
+        {isSettingsOpen && <SettingsModal onClose={closeSettings} />}
       </div>
     </StoreProvider>
   )

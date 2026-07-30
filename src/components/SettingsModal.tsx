@@ -1,14 +1,15 @@
 import { useEffect, useRef, type MouseEvent } from 'react'
 import { CharacterManager } from './CharacterManager'
+import { TaskVisibility } from './TaskVisibility'
 
-interface CharacterManagerModalProps {
+interface SettingsModalProps {
   onClose: () => void
 }
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function CharacterManagerModal({ onClose }: CharacterManagerModalProps) {
+export function SettingsModal({ onClose }: SettingsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -65,10 +66,10 @@ export function CharacterManagerModal({ onClose }: CharacterManagerModalProps) {
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="character-manager-modal-title"
+        aria-labelledby="settings-modal-title"
       >
         <div className="modal-header">
-          <h2 id="character-manager-modal-title">キャラクター管理</h2>
+          <h2 id="settings-modal-title">設定</h2>
           <button
             type="button"
             className="modal-close"
@@ -79,6 +80,7 @@ export function CharacterManagerModal({ onClose }: CharacterManagerModalProps) {
           </button>
         </div>
         <CharacterManager />
+        <TaskVisibility />
       </div>
     </div>
   )

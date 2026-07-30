@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
+import upstreamTasksDocument from './data/upstreamTasks.json'
+import { getTaskLabel } from './data/taskLabel'
 import { RECOVERED_MESSAGE } from './store/StoreProvider'
 import { STORAGE_KEY } from './store/persistence'
 
@@ -31,7 +33,7 @@ describe('App', () => {
   })
 })
 
-describe('App / キャラクター管理モーダル', () => {
+describe('App / 設定モーダル', () => {
   it('既定では閉じている', () => {
     render(<App />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -41,9 +43,7 @@ describe('App / キャラクター管理モーダル', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.click(
-      screen.getByRole('button', { name: 'キャラクター管理を開く' }),
-    )
+    await user.click(screen.getByRole('button', { name: '設定を開く' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByLabelText('キャラクター名')).toHaveFocus()
 
@@ -55,9 +55,7 @@ describe('App / キャラクター管理モーダル', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.click(
-      screen.getByRole('button', { name: 'キャラクター管理を開く' }),
-    )
+    await user.click(screen.getByRole('button', { name: '設定を開く' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
     await user.keyboard('{Escape}')
@@ -68,9 +66,7 @@ describe('App / キャラクター管理モーダル', () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
 
-    await user.click(
-      screen.getByRole('button', { name: 'キャラクター管理を開く' }),
-    )
+    await user.click(screen.getByRole('button', { name: '設定を開く' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
     const overlay = container.querySelector('.modal-overlay')
@@ -79,6 +75,28 @@ describe('App / キャラクター管理モーダル', () => {
     }
     await user.click(overlay)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('App / タスク表示設定とマトリクスの連動', () => {
+  it('タスク表示のチェックを外すとマトリクスから該当行が消える', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: '設定を開く' }))
+    await user.type(screen.getByLabelText('キャラクター名'), 'Alice')
+    await user.click(screen.getByRole('button', { name: '追加' }))
+
+    const taskLabel = getTaskLabel(upstreamTasksDocument.daily[0])
+    const checkbox = screen.getByLabelText(taskLabel)
+    expect(checkbox).toBeChecked()
+    expect(screen.getByTitle(taskLabel)).toBeInTheDocument()
+
+    await user.click(checkbox)
+    expect(checkbox).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+    expect(screen.queryByTitle(taskLabel)).not.toBeInTheDocument()
   })
 })
 

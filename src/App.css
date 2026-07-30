@@ -35,18 +35,22 @@
   border-color: var(--accent);
 }
 
-.character-manager-toggle {
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
   height: 36px;
-  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-h);
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
 }
 
-.character-manager-toggle:hover {
+.settings-toggle:hover {
   border-color: var(--accent);
 }
 
@@ -124,6 +128,25 @@
 
 .modal-close:hover {
   border-color: var(--accent);
+}
+
+.task-visibility-section {
+  margin-top: 12px;
+}
+
+.task-visibility-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.task-visibility-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
 }
 
 .app-intro {

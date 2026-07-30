@@ -9,7 +9,7 @@ import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
-import { NO_CHARACTERS_MESSAGE } from './messages'
+import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
 
 const DAILY_TASKS: Task[] = upstreamTasksDocument.daily
 const WEEKLY_TASKS: Task[] = upstreamTasksDocument.weekly
@@ -55,6 +55,7 @@ export function MatrixView() {
         section="daily"
         tasks={DAILY_TASKS}
         taskOrder={store.taskOrder?.daily}
+        hiddenTaskIds={store.hiddenTaskIds}
         characters={characters}
         progress={store.progress}
         isReadOnly={isReadOnly}
@@ -65,6 +66,7 @@ export function MatrixView() {
         section="weekly"
         tasks={WEEKLY_TASKS}
         taskOrder={store.taskOrder?.weekly}
+        hiddenTaskIds={store.hiddenTaskIds}
         characters={characters}
         progress={store.progress}
         isReadOnly={isReadOnly}
@@ -79,6 +81,7 @@ interface MatrixSectionProps {
   section: TaskCategory
   tasks: Task[]
   taskOrder: string[] | undefined
+  hiddenTaskIds: string[] | undefined
   characters: Character[]
   progress: Store['progress']
   isReadOnly: boolean
@@ -90,6 +93,7 @@ function MatrixSection({
   section,
   tasks,
   taskOrder,
+  hiddenTaskIds,
   characters,
   progress,
   isReadOnly,
@@ -98,6 +102,17 @@ function MatrixSection({
   const orderedTasks = useMemo(
     () => resolveTaskOrder(tasks, taskOrder),
     [tasks, taskOrder],
+  )
+  // Membership check only, not filtering: index/toIndex math for the
+  // ↑/↓ buttons and drag-and-drop stays anchored to positions within the
+  // full taskOrder array (see moveIdInOrder), so a hidden task keeps its
+  // slot even while its row is not rendered.
+  const hiddenTaskIdSet = useMemo(
+    () => new Set(hiddenTaskIds ?? []),
+    [hiddenTaskIds],
+  )
+  const hasVisibleTask = orderedTasks.some(
+    (task) => !hiddenTaskIdSet.has(task.id),
   )
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
@@ -143,6 +158,15 @@ function MatrixSection({
     setDragOverTaskId(null)
   }
 
+  if (!hasVisibleTask) {
+    return (
+      <div className="matrix-section">
+        <h2>{title}</h2>
+        <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="matrix-section">
       <h2>{title}</h2>
@@ -163,62 +187,69 @@ function MatrixSection({
             </tr>
           </thead>
           <tbody>
-            {orderedTasks.map((task, index) => (
-              <tr
-                key={task.id}
-                className={classNames(
-                  'matrix-row',
-                  dragOverTaskId === task.id && 'matrix-row--drag-over',
-                )}
-              >
-                <th
-                  scope="row"
-                  className="matrix-task-label"
-                  style={{ borderLeftColor: resolveTaskColor(task.color) }}
-                  title={getTaskLabel(task)}
-                  draggable={!isReadOnly}
-                  onDragStart={handleDragStart(task.id)}
-                  onDragOver={handleDragOver(task.id)}
-                  onDragLeave={handleDragLeave(task.id)}
-                  onDrop={handleDrop(task.id, index)}
-                  onDragEnd={handleDragEnd}
+            {orderedTasks.map((task, index) => {
+              if (hiddenTaskIdSet.has(task.id)) {
+                return null
+              }
+              return (
+                <tr
+                  key={task.id}
+                  className={classNames(
+                    'matrix-row',
+                    dragOverTaskId === task.id && 'matrix-row--drag-over',
+                  )}
                 >
-                  <span className="matrix-task-label-text">
-                    {getTaskLabel(task)}
-                  </span>
-                  <span className="matrix-order-controls">
-                    <button
-                      type="button"
-                      className="matrix-order-button"
-                      aria-label={`${getTaskLabel(task)} を上に移動`}
-                      disabled={isReadOnly || index === 0}
-                      onClick={() => handleMove(task.id, index - 1)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="matrix-order-button"
-                      aria-label={`${getTaskLabel(task)} を下に移動`}
-                      disabled={isReadOnly || index === orderedTasks.length - 1}
-                      onClick={() => handleMove(task.id, index + 1)}
-                    >
-                      ↓
-                    </button>
-                  </span>
-                </th>
-                {characters.map((character) => (
-                  <MatrixCell
-                    key={character.id}
-                    character={character}
-                    task={task}
-                    value={progressValue(progress, character.id, task.id)}
-                    isReadOnly={isReadOnly}
-                    dispatch={dispatch}
-                  />
-                ))}
-              </tr>
-            ))}
+                  <th
+                    scope="row"
+                    className="matrix-task-label"
+                    style={{ borderLeftColor: resolveTaskColor(task.color) }}
+                    title={getTaskLabel(task)}
+                    draggable={!isReadOnly}
+                    onDragStart={handleDragStart(task.id)}
+                    onDragOver={handleDragOver(task.id)}
+                    onDragLeave={handleDragLeave(task.id)}
+                    onDrop={handleDrop(task.id, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <span className="matrix-task-label-text">
+                      {getTaskLabel(task)}
+                    </span>
+                    <span className="matrix-order-controls">
+                      <button
+                        type="button"
+                        className="matrix-order-button"
+                        aria-label={`${getTaskLabel(task)} を上に移動`}
+                        disabled={isReadOnly || index === 0}
+                        onClick={() => handleMove(task.id, index - 1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="matrix-order-button"
+                        aria-label={`${getTaskLabel(task)} を下に移動`}
+                        disabled={
+                          isReadOnly || index === orderedTasks.length - 1
+                        }
+                        onClick={() => handleMove(task.id, index + 1)}
+                      >
+                        ↓
+                      </button>
+                    </span>
+                  </th>
+                  {characters.map((character) => (
+                    <MatrixCell
+                      key={character.id}
+                      character={character}
+                      task={task}
+                      value={progressValue(progress, character.id, task.id)}
+                      isReadOnly={isReadOnly}
+                      dispatch={dispatch}
+                    />
+                  ))}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

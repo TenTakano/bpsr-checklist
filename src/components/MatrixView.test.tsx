@@ -11,7 +11,7 @@ import {
 import { moveTask, setProgress } from '../store/actions'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
-import { NO_CHARACTERS_MESSAGE } from './messages'
+import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
 import { MatrixView } from './MatrixView'
 
 const TOGGLE_TASK_ID = upstreamTasksDocument.daily[0].id
@@ -286,6 +286,44 @@ describe('MatrixView / drag and drop reordering', () => {
     fireEvent.drop(source, { dataTransfer })
 
     expect(dispatch).not.toHaveBeenCalled()
+  })
+})
+
+describe('MatrixView / hidden tasks', () => {
+  it('excludes a hidden task row from rendering while keeping other rows', () => {
+    renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: [TOGGLE_TASK_ID] }),
+    })
+    expect(
+      screen.queryByTitle(getTaskLabel(upstreamTasksDocument.daily[0])),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByTitle(getTaskLabel(upstreamTasksDocument.daily[1])),
+    ).toBeInTheDocument()
+  })
+
+  it('shows an empty-state message for a section when every task in it is hidden', () => {
+    const allDailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: allDailyIds }),
+    })
+    expect(screen.getByText(NO_VISIBLE_TASKS_MESSAGE)).toBeInTheDocument()
+    expect(screen.getAllByRole('rowheader')).toHaveLength(
+      upstreamTasksDocument.weekly.length,
+    )
+  })
+
+  it('keeps the ↑/↓ move target anchored to the full taskOrder position even when a hidden task sits between visible rows', async () => {
+    const dailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: [dailyIds[1]] }),
+    })
+    const thirdLabel = getTaskLabel(upstreamTasksDocument.daily[2])
+    const button = screen.getByRole('button', {
+      name: `${thirdLabel} を上に移動`,
+    })
+    await userEvent.click(button)
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[2], 1))
   })
 })
 
