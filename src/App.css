@@ -228,21 +228,43 @@
 }
 
 .matrix-toggle {
-  width: 100%;
-  min-width: 40px;
-  height: 32px;
-  border: 1px solid var(--matrix-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
+  border: 2px solid var(--matrix-border);
   border-radius: 4px;
-  background: var(--bg);
-  color: var(--text-h);
+  background: var(--surface);
+  color: transparent;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0;
+}
+
+.matrix-toggle::after {
+  content: '';
+}
+
+.matrix-toggle:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.matrix-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .matrix-toggle--done {
   background: var(--matrix-complete-bg);
-  color: var(--matrix-complete-fg);
   border-color: var(--matrix-complete-bg);
+  color: var(--matrix-complete-fg);
+}
+
+.matrix-toggle--done::after {
+  content: '✓';
+  font-size: 14px;
+  line-height: 1;
 }
 
 .matrix-toggle:disabled {
@@ -262,10 +284,20 @@
   height: 24px;
   line-height: 1;
   border: 1px solid var(--matrix-border);
-  border-radius: 4px;
-  background: var(--bg);
+  border-radius: 999px;
+  background: var(--surface);
   color: var(--text-h);
   cursor: pointer;
+}
+
+.matrix-counter-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.matrix-counter-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .matrix-counter-button:disabled {
@@ -276,6 +308,11 @@
 .matrix-counter-value {
   min-width: 2.5em;
   text-align: center;
+}
+
+.matrix-counter-value--complete {
+  color: var(--matrix-complete-bg);
+  font-weight: 600;
 }
 
 .matrix-counter-value--over {
