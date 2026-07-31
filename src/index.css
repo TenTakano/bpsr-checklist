@@ -20,6 +20,25 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Task color tokens consumed by taskColors.ts. Defined separately for
+     light and dark schemes so each maintains sufficient contrast. */
+  --task-color-blue: #2563eb;
+  --task-color-brown: #92582a;
+  --task-color-dark-purple: #7c3aed;
+  --task-color-gold: #b8860b;
+  --task-color-green: #16a34a;
+  --task-color-grey: #6b7280;
+  --task-color-orange: #ea580c;
+  --task-color-pearl: #a8a29e;
+  --task-color-purple: #9333ea;
+  --task-color-yellow: #ca8a04;
+  --task-color-neutral: #6b7280;
+
+  --matrix-border: #d8d8de;
+  --matrix-complete-bg: #16a34a;
+  --matrix-complete-fg: #f3f4f6;
+  --matrix-over-color: #dc2626;
 }
 
 [data-theme='dark'] {
@@ -35,13 +54,31 @@
   --danger-text: #ff9fae;
 
   color-scheme: dark;
+
+  --task-color-blue: #60a5fa;
+  --task-color-brown: #c98a4b;
+  --task-color-dark-purple: #a78bfa;
+  --task-color-gold: #eab308;
+  --task-color-green: #4ade80;
+  --task-color-grey: #9ca3af;
+  --task-color-orange: #fb923c;
+  --task-color-pearl: #d6d3d1;
+  --task-color-purple: #c084fc;
+  --task-color-yellow: #fde047;
+  --task-color-neutral: #9ca3af;
+
+  --matrix-border: #3f414c;
+  --matrix-complete-bg: #15803d;
+  --matrix-complete-fg: #f3f4f6;
+  --matrix-over-color: #f87171;
 }
 
 body {
   margin: 0;
 }
 
-h1 {
+h1,
+h2 {
   font-family: var(--sans);
   font-weight: 500;
   color: var(--text-h);
