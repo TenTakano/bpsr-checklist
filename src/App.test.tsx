@@ -28,3 +28,54 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('App / キャラクター管理モーダル', () => {
+  it('既定では閉じている', () => {
+    render(<App />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('開閉ボタンでモーダルを開閉する', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'キャラクター管理を開く' }),
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByLabelText('キャラクター名')).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('Escキーでモーダルを閉じる', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'キャラクター管理を開く' }),
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('オーバーレイクリックでモーダルを閉じる', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+
+    await user.click(
+      screen.getByRole('button', { name: 'キャラクター管理を開く' }),
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    const overlay = container.querySelector('.modal-overlay')
+    if (overlay === null) {
+      throw new Error('overlay not found')
+    }
+    await user.click(overlay)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
