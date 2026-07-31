@@ -4,6 +4,7 @@ export type Action =
   | { type: 'duplicateCharacter'; id: string }
   | { type: 'removeCharacter'; id: string }
   | { type: 'setProgress'; characterId: string; taskId: string; value: number }
+  | { type: 'evaluateReset'; now: Date }
 
 export const addCharacter = (name: string): Action => ({
   type: 'addCharacter',
@@ -35,4 +36,9 @@ export const setProgress = (
   characterId,
   taskId,
   value,
+})
+
+export const evaluateReset = (now: Date): Action => ({
+  type: 'evaluateReset',
+  now,
 })

@@ -1,3 +1,8 @@
+import {
+  getCurrentDailyPeriodStart,
+  getCurrentWeeklyPeriodStart,
+} from '../data/resetConfig'
+import { getTaskCategory, type TaskCategory } from '../data/taskLookup'
 import type { Action } from './actions'
 import { MAX_CHARACTER_NAME_LENGTH, type Character } from './schema'
 import type { Store } from './types'
@@ -30,6 +35,103 @@ const removeProgressEntry = (
 
 const hasCharacter = (store: Store, id: string): boolean =>
   store.characters.some((character) => character.id === id)
+
+const shouldResetPeriod = (
+  storedPeriodStart: string | undefined,
+  currentPeriodStart: string,
+): boolean => {
+  if (storedPeriodStart === undefined) {
+    return false
+  }
+  const storedTime = Date.parse(storedPeriodStart)
+  const currentTime = Date.parse(currentPeriodStart)
+  return !Number.isNaN(storedTime) && storedTime < currentTime
+}
+
+interface RemoveCategoriesResult {
+  progress: Store['progress']
+  changed: boolean
+}
+
+const removeCategoriesFromProgress = (
+  progress: Store['progress'],
+  categoriesToReset: ReadonlySet<TaskCategory>,
+): RemoveCategoriesResult => {
+  const nextProgress: Store['progress'] = {}
+  let changed = false
+
+  for (const [characterId, taskProgress] of Object.entries(progress)) {
+    const remaining: Record<string, number> = {}
+    let characterChanged = false
+    for (const [taskId, value] of Object.entries(taskProgress)) {
+      const category = getTaskCategory(taskId)
+      if (category !== null && categoriesToReset.has(category)) {
+        characterChanged = true
+      } else {
+        remaining[taskId] = value
+      }
+    }
+    if (characterChanged) {
+      nextProgress[characterId] = remaining
+      changed = true
+    } else {
+      nextProgress[characterId] = taskProgress
+    }
+  }
+
+  return { progress: nextProgress, changed }
+}
+
+export const evaluateResetState = (store: Store, now: Date): Store => {
+  const currentDailyPeriodStart = getCurrentDailyPeriodStart(now)
+  const currentWeeklyPeriodStart = getCurrentWeeklyPeriodStart(now)
+
+  const periodUnchanged =
+    store.resetState?.dailyPeriodStart === currentDailyPeriodStart &&
+    store.resetState?.weeklyPeriodStart === currentWeeklyPeriodStart
+
+  if (periodUnchanged) {
+    return store
+  }
+
+  const categoriesToReset = new Set<TaskCategory>()
+  if (
+    shouldResetPeriod(
+      store.resetState?.dailyPeriodStart,
+      currentDailyPeriodStart,
+    )
+  ) {
+    categoriesToReset.add('daily')
+  }
+  if (
+    shouldResetPeriod(
+      store.resetState?.weeklyPeriodStart,
+      currentWeeklyPeriodStart,
+    )
+  ) {
+    categoriesToReset.add('weekly')
+  }
+
+  let progress = store.progress
+  if (categoriesToReset.size > 0) {
+    const result = removeCategoriesFromProgress(
+      store.progress,
+      categoriesToReset,
+    )
+    if (result.changed) {
+      progress = result.progress
+    }
+  }
+
+  return {
+    ...store,
+    resetState: {
+      dailyPeriodStart: currentDailyPeriodStart,
+      weeklyPeriodStart: currentWeeklyPeriodStart,
+    },
+    progress,
+  }
+}
 
 export const reducer = (store: Store, action: Action): Store => {
   switch (action.type) {
@@ -108,17 +210,22 @@ export const reducer = (store: Store, action: Action): Store => {
       if (!hasCharacter(store, action.characterId)) {
         return store
       }
-      const characterProgress = store.progress[action.characterId] ?? {}
+      const resetApplied = evaluateResetState(store, new Date())
+      const characterProgress = resetApplied.progress[action.characterId] ?? {}
       return {
-        ...store,
+        ...resetApplied,
         progress: {
-          ...store.progress,
+          ...resetApplied.progress,
           [action.characterId]: {
             ...characterProgress,
             [action.taskId]: action.value,
           },
         },
       }
+    }
+
+    case 'evaluateReset': {
+      return evaluateResetState(store, action.now)
     }
   }
 }
