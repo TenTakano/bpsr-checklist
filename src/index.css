@@ -6,6 +6,9 @@
   --text-h: #1a2333;
   --text-muted: #5a6480;
   --accent: #1c6dd0;
+  --danger-bg: #fdeef0;
+  --danger-border: #c8283f;
+  --danger-text: #8a1626;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
 
@@ -27,6 +30,9 @@
   --text-h: #e6edf7;
   --text-muted: #8a97b8;
   --accent: #4fd7ff;
+  --danger-bg: #3a1620;
+  --danger-border: #e2596e;
+  --danger-text: #ff9fae;
 
   color-scheme: dark;
 }
