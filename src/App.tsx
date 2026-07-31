@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { CharacterManagerModal } from './components/CharacterManagerModal'
 import { StatusBanner } from './components/StatusBanner'
+import { MatrixView } from './components/MatrixView'
 import { StoreProvider } from './store/StoreProvider'
 
 function App() {
@@ -45,11 +46,14 @@ function App() {
         </header>
         <StatusBanner />
         <main className="app-layout">
-          <h1>BPSR Checklist</h1>
-          <p>
-            Blue Protocol: Star Resonance
-            のデイリー/ウィークリータスク管理ツール
-          </p>
+          <header className="app-intro">
+            <h1>BPSR Checklist</h1>
+            <p>
+              Blue Protocol: Star Resonance
+              のデイリー/ウィークリータスク管理ツール
+            </p>
+          </header>
+          <MatrixView />
         </main>
         {isCharacterManagerOpen && (
           <CharacterManagerModal onClose={closeCharacterManager} />

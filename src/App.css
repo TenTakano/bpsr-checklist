@@ -209,20 +209,6 @@
   vertical-align: middle;
 }
 
-.matrix-optional-badge {
-  margin-left: 6px;
-  font-size: 0.75em;
-  color: var(--text);
-}
-
-.matrix-row {
-  opacity: 1;
-}
-
-.matrix-row--optional {
-  opacity: 0.65;
-}
-
 .matrix-cell {
   text-align: center;
 }
