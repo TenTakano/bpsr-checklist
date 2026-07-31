@@ -12,11 +12,22 @@ export type Character = z.infer<typeof CharacterSchema>
 
 export const ProgressValueSchema = z.number().int().min(0)
 
-// Only the shape of characters/progress is validated here; persistence.ts
-// performs the element-level rescue on top of this.
+const IsoDateTimeStringSchema = z.iso.datetime()
+
+export const ResetStateSchema = z.strictObject({
+  dailyPeriodStart: IsoDateTimeStringSchema,
+  weeklyPeriodStart: IsoDateTimeStringSchema,
+})
+
+export type ResetState = z.infer<typeof ResetStateSchema>
+
+// resetState is left as z.unknown().optional() rather than ResetStateSchema
+// so an invalid value degrades to "absent" (see rescueResetState in
+// persistence.ts) instead of failing the whole top-level parse.
 export const StoreSchema = z.looseObject({
   schemaVersion: z.number().int().min(1),
   taskDataVersion: z.string().min(1).nullable(),
   characters: z.array(z.unknown()),
   progress: z.record(z.string(), z.record(z.string(), z.unknown())),
+  resetState: z.unknown().optional(),
 })

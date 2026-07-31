@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { storeWithCharacter } from '../test/fixtures'
 import {
   BACKUP_STORAGE_KEY,
+  RESET_BACKUP_STORAGE_KEY,
   STORAGE_KEY,
   backupCorruptedStore,
+  backupResetSnapshot,
+  diffRemovedProgress,
   loadStore,
   saveStore,
 } from './persistence'
@@ -264,6 +267,108 @@ describe('loadStore', () => {
 
     expect(result.status).toBe('readonly')
   })
+
+  it('round-trips a valid resetState through save and load', () => {
+    const store = storeWithCharacter({
+      progress: {},
+      resetState: {
+        dailyPeriodStart: '2026-01-01T19:00:00.000Z',
+        weeklyPeriodStart: '2025-12-28T19:00:00.000Z',
+      },
+    })
+    const saveResult = saveStore(store)
+    expect(saveResult.status).toBe('ok')
+
+    const loadResult = loadStore()
+    expect(loadResult.status).toBe('ok')
+    if (loadResult.status === 'ok') {
+      expect(loadResult.store.resetState).toEqual(store.resetState)
+    }
+  })
+
+  it('omits resetState entirely when it was never stored', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent resetState (without wiping the rest of the store) when dailyPeriodStart is not a valid date string', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      resetState: {
+        dailyPeriodStart: 'not-a-date',
+        weeklyPeriodStart: '2025-12-28T19:00:00.000Z',
+      },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('falls back to an absent resetState when a required field is missing', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      resetState: { dailyPeriodStart: '2026-01-01T19:00:00.000Z' },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+    }
+  })
+
+  it("preserves a well-formed resetState even when it points to a future period (filtering is the reducer's responsibility, not persistence)", () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      resetState: {
+        dailyPeriodStart: '2999-01-01T19:00:00.000Z',
+        weeklyPeriodStart: '2999-01-01T19:00:00.000Z',
+      },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toEqual({
+        dailyPeriodStart: '2999-01-01T19:00:00.000Z',
+        weeklyPeriodStart: '2999-01-01T19:00:00.000Z',
+      })
+    }
+  })
 })
 
 describe('backupCorruptedStore', () => {
@@ -301,5 +406,77 @@ describe('saveStore', () => {
 
     const result = saveStore(sampleStore())
     expect(result.status).toBe('error')
+  })
+})
+
+describe('backupResetSnapshot', () => {
+  it('writes the removed progress under the reset backup key, alongside a backedUpAt timestamp', () => {
+    const removedProgress = { 'char-1': { daily_a: 2 } }
+
+    const result = backupResetSnapshot(removedProgress)
+
+    expect(result.status).toBe('ok')
+    const stored = JSON.parse(
+      localStorage.getItem(RESET_BACKUP_STORAGE_KEY) ?? 'null',
+    )
+    expect(stored.progress).toEqual(removedProgress)
+    expect(typeof stored.backedUpAt).toBe('string')
+    expect(Number.isNaN(Date.parse(stored.backedUpAt))).toBe(false)
+  })
+
+  it('reports a failure without throwing when localStorage.setItem throws', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    const result = backupResetSnapshot({ 'char-1': { daily_a: 2 } })
+
+    expect(result.status).toBe('error')
+  })
+})
+
+describe('diffRemovedProgress', () => {
+  it('returns the tasks that are present in the previous progress but missing in the next', () => {
+    const previous = { 'char-1': { daily_a: 2, daily_b: 1 } }
+    const next = { 'char-1': { daily_b: 1 } }
+
+    expect(diffRemovedProgress(previous, next)).toEqual({
+      'char-1': { daily_a: 2 },
+    })
+  })
+
+  it('returns an empty object when no tasks were removed', () => {
+    const previous = { 'char-1': { daily_a: 2 } }
+    const next = { 'char-1': { daily_a: 2, daily_b: 1 } }
+
+    expect(diffRemovedProgress(previous, next)).toEqual({})
+  })
+
+  it('treats a character missing entirely from the next progress as having all its tasks removed', () => {
+    const previous = { 'char-1': { daily_a: 2, daily_b: 1 } }
+    const next = {}
+
+    expect(diffRemovedProgress(previous, next)).toEqual({
+      'char-1': { daily_a: 2, daily_b: 1 },
+    })
+  })
+
+  it('returns an empty object when both progress objects are empty', () => {
+    expect(diffRemovedProgress({}, {})).toEqual({})
+  })
+
+  it('drops entries keyed by an unsafe object key', () => {
+    // Built via JSON.parse of a raw string (not a JS object literal) so
+    // that "__proto__" becomes a genuine own key instead of setting the
+    // object's prototype.
+    const previous = JSON.parse(
+      '{"__proto__":{"daily_a":2},"constructor":{"daily_a":2},' +
+        '"char-1":{"__proto__":3,"constructor":4,"daily_a":2}}',
+    )
+    const next = {}
+
+    expect(diffRemovedProgress(previous, next)).toEqual({
+      'char-1': { daily_a: 2 },
+    })
   })
 })
