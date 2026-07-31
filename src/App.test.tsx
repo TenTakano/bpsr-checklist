@@ -87,7 +87,7 @@ describe('App / ステータスバナー', () => {
     localStorage.setItem(STORAGE_KEY, '{not valid json')
     render(<App />)
 
-    expect(screen.getByRole('status')).toHaveTextContent(RECOVERED_MESSAGE)
+    expect(screen.getByRole('alert')).toHaveTextContent(RECOVERED_MESSAGE)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
