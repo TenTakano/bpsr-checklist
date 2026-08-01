@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { getTaskLabel } from '../data/taskLabel'
@@ -8,7 +8,7 @@ import {
   emptyStore,
   storeWithCharacter,
 } from '../test/fixtures'
-import { setProgress } from '../store/actions'
+import { moveTask, setProgress } from '../store/actions'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import { NO_CHARACTERS_MESSAGE } from './messages'
@@ -54,6 +54,20 @@ const secondCharacter: Character = {
   id: 'char-2',
   name: 'Bob',
   createdAt: '2026-01-02T00:00:00.000Z',
+}
+
+// jsdom has no DataTransfer constructor, so drag-and-drop tests build a
+// minimal stand-in with just the members the component reads/writes.
+const fakeDataTransfer = () => {
+  const data: Record<string, string> = {}
+  return {
+    effectAllowed: '',
+    dropEffect: '',
+    setData: (format: string, value: string) => {
+      data[format] = value
+    },
+    getData: (format: string) => data[format] ?? '',
+  }
 }
 
 describe('MatrixView / empty state', () => {
@@ -180,6 +194,101 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
   })
 })
 
+describe('MatrixView / task order buttons', () => {
+  const firstLabel = getTaskLabel(upstreamTasksDocument.daily[0])
+  const lastDailyTask =
+    upstreamTasksDocument.daily[upstreamTasksDocument.daily.length - 1]
+  const lastLabel = getTaskLabel(lastDailyTask)
+
+  it('disables the up button on the first row and the down button on the last row', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    expect(
+      screen.getByRole('button', { name: `${firstLabel} を上に移動` }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: `${firstLabel} を下に移動` }),
+    ).toBeEnabled()
+    expect(
+      screen.getByRole('button', { name: `${lastLabel} を下に移動` }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: `${lastLabel} を上に移動` }),
+    ).toBeEnabled()
+  })
+
+  it('dispatches moveTask with the taskOrder-array index when the down button is clicked', async () => {
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const button = screen.getByRole('button', {
+      name: `${firstLabel} を下に移動`,
+    })
+    await userEvent.click(button)
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', TOGGLE_TASK_ID, 1))
+  })
+
+  it('dispatches moveTask when the up button is clicked', async () => {
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const button = screen.getByRole('button', {
+      name: `${lastLabel} を上に移動`,
+    })
+    await userEvent.click(button)
+    expect(dispatch).toHaveBeenCalledWith(
+      moveTask(
+        'daily',
+        lastDailyTask.id,
+        upstreamTasksDocument.daily.length - 2,
+      ),
+    )
+  })
+})
+
+describe('MatrixView / drag and drop reordering', () => {
+  it('dispatches moveTask with the drop target index when a row is dragged within the same section', () => {
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const source = screen.getByTitle(
+      getTaskLabel(upstreamTasksDocument.daily[0]),
+    )
+    const target = screen.getByTitle(
+      getTaskLabel(upstreamTasksDocument.daily[2]),
+    )
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+    fireEvent.dragOver(target, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', TOGGLE_TASK_ID, 2))
+  })
+
+  it('ignores a drop when the dragged row belongs to a different section', () => {
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const dailySource = screen.getByTitle(
+      getTaskLabel(upstreamTasksDocument.daily[0]),
+    )
+    const weeklyTarget = screen.getByTitle(
+      getTaskLabel(upstreamTasksDocument.weekly[0]),
+    )
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(dailySource, { dataTransfer })
+    fireEvent.drop(weeklyTarget, { dataTransfer })
+
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+
+  it('does not dispatch when dropping a row onto itself', () => {
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const source = screen.getByTitle(
+      getTaskLabel(upstreamTasksDocument.daily[0]),
+    )
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+    fireEvent.drop(source, { dataTransfer })
+
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+})
+
 describe('MatrixView / readonly mode', () => {
   it('disables every toggle and counter control', () => {
     renderWithContext({
@@ -190,6 +299,18 @@ describe('MatrixView / readonly mode', () => {
     expect(buttons.length).toBeGreaterThan(0)
     for (const button of buttons) {
       expect(button).toBeDisabled()
+    }
+  })
+
+  it('disables the drag handle on every task row', () => {
+    renderWithContext({
+      store: storeWithCharacter(),
+      status: 'readonly',
+    })
+    const rowHeaders = screen.getAllByRole('rowheader')
+    expect(rowHeaders.length).toBeGreaterThan(0)
+    for (const rowHeader of rowHeaders) {
+      expect(rowHeader).toHaveAttribute('draggable', 'false')
     }
   })
 })

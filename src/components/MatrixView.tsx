@@ -1,8 +1,11 @@
+import { useMemo, useState, type DragEvent } from 'react'
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { resolveTaskColor } from '../data/taskColors'
 import { getTaskLabel } from '../data/taskLabel'
+import type { TaskCategory } from '../data/taskLookup'
+import { resolveTaskOrder } from '../data/taskOrder'
 import type { Task } from '../data/taskSchema'
-import { setProgress } from '../store/actions'
+import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
@@ -49,7 +52,9 @@ export function MatrixView() {
     <section aria-label="進捗マトリクス" className="matrix-view">
       <MatrixSection
         title="デイリー"
+        section="daily"
         tasks={DAILY_TASKS}
+        taskOrder={store.taskOrder?.daily}
         characters={characters}
         progress={store.progress}
         isReadOnly={isReadOnly}
@@ -57,7 +62,9 @@ export function MatrixView() {
       />
       <MatrixSection
         title="ウィークリー"
+        section="weekly"
         tasks={WEEKLY_TASKS}
+        taskOrder={store.taskOrder?.weekly}
         characters={characters}
         progress={store.progress}
         isReadOnly={isReadOnly}
@@ -69,7 +76,9 @@ export function MatrixView() {
 
 interface MatrixSectionProps {
   title: string
+  section: TaskCategory
   tasks: Task[]
+  taskOrder: string[] | undefined
   characters: Character[]
   progress: Store['progress']
   isReadOnly: boolean
@@ -78,12 +87,62 @@ interface MatrixSectionProps {
 
 function MatrixSection({
   title,
+  section,
   tasks,
+  taskOrder,
   characters,
   progress,
   isReadOnly,
   dispatch,
 }: MatrixSectionProps) {
+  const orderedTasks = useMemo(
+    () => resolveTaskOrder(tasks, taskOrder),
+    [tasks, taskOrder],
+  )
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+
+  const handleMove = (taskId: string, toIndex: number) => {
+    dispatch(moveTask(section, taskId, toIndex))
+  }
+
+  const handleDragStart =
+    (taskId: string) => (event: DragEvent<HTMLTableCellElement>) => {
+      setDraggedTaskId(taskId)
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', taskId)
+    }
+
+  const handleDragOver =
+    (taskId: string) => (event: DragEvent<HTMLTableCellElement>) => {
+      if (draggedTaskId === null || draggedTaskId === taskId) {
+        return
+      }
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      setDragOverTaskId(taskId)
+    }
+
+  const handleDragLeave = (taskId: string) => () => {
+    setDragOverTaskId((current) => (current === taskId ? null : current))
+  }
+
+  const handleDrop =
+    (taskId: string, index: number) =>
+    (event: DragEvent<HTMLTableCellElement>) => {
+      event.preventDefault()
+      if (draggedTaskId !== null && draggedTaskId !== taskId) {
+        handleMove(draggedTaskId, index)
+      }
+      setDraggedTaskId(null)
+      setDragOverTaskId(null)
+    }
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null)
+    setDragOverTaskId(null)
+  }
+
   return (
     <div className="matrix-section">
       <h2>{title}</h2>
@@ -104,16 +163,48 @@ function MatrixSection({
             </tr>
           </thead>
           <tbody>
-            {tasks.map((task) => (
-              <tr key={task.id} className="matrix-row">
+            {orderedTasks.map((task, index) => (
+              <tr
+                key={task.id}
+                className={classNames(
+                  'matrix-row',
+                  dragOverTaskId === task.id && 'matrix-row--drag-over',
+                )}
+              >
                 <th
                   scope="row"
                   className="matrix-task-label"
                   style={{ borderLeftColor: resolveTaskColor(task.color) }}
                   title={getTaskLabel(task)}
+                  draggable={!isReadOnly}
+                  onDragStart={handleDragStart(task.id)}
+                  onDragOver={handleDragOver(task.id)}
+                  onDragLeave={handleDragLeave(task.id)}
+                  onDrop={handleDrop(task.id, index)}
+                  onDragEnd={handleDragEnd}
                 >
                   <span className="matrix-task-label-text">
                     {getTaskLabel(task)}
+                  </span>
+                  <span className="matrix-order-controls">
+                    <button
+                      type="button"
+                      className="matrix-order-button"
+                      aria-label={`${getTaskLabel(task)} を上に移動`}
+                      disabled={isReadOnly || index === 0}
+                      onClick={() => handleMove(task.id, index - 1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="matrix-order-button"
+                      aria-label={`${getTaskLabel(task)} を下に移動`}
+                      disabled={isReadOnly || index === orderedTasks.length - 1}
+                      onClick={() => handleMove(task.id, index + 1)}
+                    >
+                      ↓
+                    </button>
                   </span>
                 </th>
                 {characters.map((character) => (
