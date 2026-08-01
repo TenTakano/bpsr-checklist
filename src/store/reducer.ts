@@ -3,6 +3,7 @@ import {
   getCurrentWeeklyPeriodStart,
 } from '../data/resetConfig'
 import { getTaskCategory, type TaskCategory } from '../data/taskLookup'
+import { moveIdInOrder, resolveTaskOrderIds } from '../data/taskOrder'
 import type { Action } from './actions'
 import { MAX_CHARACTER_NAME_LENGTH, type Character } from './schema'
 import type { Store } from './types'
@@ -226,6 +227,33 @@ export const reducer = (store: Store, action: Action): Store => {
 
     case 'evaluateReset': {
       return evaluateResetState(store, action.now)
+    }
+
+    case 'moveTask': {
+      const currentOrder = resolveTaskOrderIds(
+        action.section,
+        store.taskOrder?.[action.section],
+      )
+      const nextOrder = moveIdInOrder(
+        currentOrder,
+        action.taskId,
+        action.toIndex,
+      )
+      if (nextOrder === currentOrder) {
+        return store
+      }
+      const dailyOrder =
+        action.section === 'daily'
+          ? nextOrder
+          : resolveTaskOrderIds('daily', store.taskOrder?.daily)
+      const weeklyOrder =
+        action.section === 'weekly'
+          ? nextOrder
+          : resolveTaskOrderIds('weekly', store.taskOrder?.weekly)
+      return {
+        ...store,
+        taskOrder: { daily: dailyOrder, weekly: weeklyOrder },
+      }
     }
   }
 }

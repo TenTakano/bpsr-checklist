@@ -4,6 +4,7 @@ import {
   ProgressValueSchema,
   ResetStateSchema,
   StoreSchema,
+  TaskOrderSchema,
   type Character,
 } from './schema'
 import type { Store } from './types'
@@ -95,6 +96,7 @@ const extraTopLevelFields = (
         key !== 'characters' &&
         key !== 'progress' &&
         key !== 'resetState' &&
+        key !== 'taskOrder' &&
         !UNSAFE_OBJECT_KEYS.has(key),
     ),
   )
@@ -104,6 +106,14 @@ const extraTopLevelFields = (
 // as needing initialization only, never a destructive reset.
 const rescueResetState = (raw: unknown): Store['resetState'] => {
   const result = ResetStateSchema.safeParse(raw)
+  return result.success ? result.data : undefined
+}
+
+// An invalid taskOrder degrades to "absent" (undefined) rather than
+// rejecting the whole store, so the MatrixView falls back to definition
+// order instead of losing the rest of the store.
+const rescueTaskOrder = (raw: unknown): Store['taskOrder'] => {
+  const result = TaskOrderSchema.safeParse(raw)
   return result.success ? result.data : undefined
 }
 
@@ -133,6 +143,7 @@ export const loadStore = (): LoadResult => {
   const characters = rescueCharacters(topLevel.data.characters)
   const progress = rescueProgress(topLevel.data.progress, characters)
   const resetState = rescueResetState(topLevel.data.resetState)
+  const taskOrder = rescueTaskOrder(topLevel.data.taskOrder)
 
   return {
     status: 'ok',
@@ -143,6 +154,7 @@ export const loadStore = (): LoadResult => {
       characters,
       progress,
       resetState,
+      taskOrder,
     },
   }
 }

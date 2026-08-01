@@ -5,6 +5,7 @@ import {
   addCharacter,
   duplicateCharacter,
   evaluateReset,
+  moveTask,
   removeCharacter,
   renameCharacter,
   setProgress,
@@ -13,6 +14,7 @@ import { evaluateResetState, reducer } from './reducer'
 
 const DAILY_TASK_ID = upstreamTasksDocument.daily[0].id
 const WEEKLY_TASK_ID = upstreamTasksDocument.weekly[0].id
+const DAILY_TASK_IDS = upstreamTasksDocument.daily.map((task) => task.id)
 
 describe('reducer / addCharacter', () => {
   it('appends a character with a trimmed name', () => {
@@ -149,6 +151,82 @@ describe('reducer / setProgress', () => {
   it('is a no-op when the character does not exist', () => {
     const store = emptyStore()
     expect(reducer(store, setProgress('missing', DAILY_TASK_ID, 1))).toBe(store)
+  })
+})
+
+describe('reducer / moveTask', () => {
+  it('creates a taskOrder from definition order and applies the move on first use', () => {
+    const store = emptyStore()
+    const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[0], 2))
+
+    const expectedDaily = [...DAILY_TASK_IDS]
+    const [moved] = expectedDaily.splice(0, 1)
+    expectedDaily.splice(2, 0, moved)
+
+    expect(result.taskOrder?.daily).toEqual(expectedDaily)
+  })
+
+  it('leaves the other section untouched (resolved to definition order) when moving within one section', () => {
+    const store = emptyStore()
+    const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[0], 1))
+    expect(result.taskOrder?.weekly).toEqual(
+      upstreamTasksDocument.weekly.map((task) => task.id),
+    )
+  })
+
+  it('moves an id within an existing stored order', () => {
+    const reordered = [...DAILY_TASK_IDS].reverse()
+    const store = storeWithCharacter({
+      taskOrder: {
+        daily: reordered,
+        weekly: upstreamTasksDocument.weekly.map((task) => task.id),
+      },
+    })
+    const result = reducer(store, moveTask('daily', reordered[0], 3))
+
+    const expected = [...reordered]
+    const [moved] = expected.splice(0, 1)
+    expected.splice(3, 0, moved)
+    expect(result.taskOrder?.daily).toEqual(expected)
+  })
+
+  it('is a no-op when the taskId does not exist in the section', () => {
+    const store = emptyStore()
+    const result = reducer(store, moveTask('daily', 'not-a-real-task', 0))
+    expect(result).toBe(store)
+  })
+
+  it('supplements a partial stored order with newly-added definition tasks before moving', () => {
+    const store = storeWithCharacter({
+      taskOrder: {
+        daily: [DAILY_TASK_IDS[1]],
+        weekly: upstreamTasksDocument.weekly.map((task) => task.id),
+      },
+    })
+    const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[1], 1))
+
+    const supplemented = [
+      DAILY_TASK_IDS[1],
+      ...DAILY_TASK_IDS.filter((id) => id !== DAILY_TASK_IDS[1]),
+    ]
+    const expected = [...supplemented]
+    const [moved] = expected.splice(0, 1)
+    expected.splice(1, 0, moved)
+    expect(result.taskOrder?.daily).toEqual(expected)
+  })
+
+  it('ignores ids from a stored order that no longer exist in the definition', () => {
+    const store = storeWithCharacter({
+      taskOrder: {
+        daily: ['ghost_task', ...DAILY_TASK_IDS],
+        weekly: upstreamTasksDocument.weekly.map((task) => task.id),
+      },
+    })
+    // DAILY_TASK_IDS[0] resolves to index 0 once ghost_task is filtered out,
+    // so it must move to a different index for the reducer to persist a
+    // (ghost_task-free) taskOrder at all.
+    const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[0], 5))
+    expect(result.taskOrder?.daily).not.toContain('ghost_task')
   })
 })
 
