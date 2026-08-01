@@ -64,6 +64,7 @@ export function CharacterManager() {
 
   return (
     <section aria-label="キャラクター管理">
+      <h3>キャラクター管理</h3>
       <form onSubmit={handleAdd}>
         <label htmlFor="new-character-name">キャラクター名</label>
         <input
