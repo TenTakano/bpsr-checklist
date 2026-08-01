@@ -10,4 +10,5 @@ export interface Store {
   progress: Record<string, Record<string, number>>
   resetState?: ResetState
   taskOrder?: TaskOrder
+  hiddenTaskIds?: string[]
 }

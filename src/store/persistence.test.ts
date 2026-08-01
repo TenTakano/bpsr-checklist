@@ -459,6 +459,78 @@ describe('loadStore', () => {
       })
     }
   })
+
+  it('round-trips a valid hiddenTaskIds through save and load', () => {
+    const store = storeWithCharacter({
+      progress: {},
+      hiddenTaskIds: ['daily_a', 'weekly_a'],
+    })
+    const saveResult = saveStore(store)
+    expect(saveResult.status).toBe('ok')
+
+    const loadResult = loadStore()
+    expect(loadResult.status).toBe('ok')
+    if (loadResult.status === 'ok') {
+      expect(loadResult.store.hiddenTaskIds).toEqual(store.hiddenTaskIds)
+    }
+  })
+
+  it('omits hiddenTaskIds entirely when it was never stored', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.hiddenTaskIds).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent hiddenTaskIds (without wiping the rest of the store) when it holds the wrong type', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      hiddenTaskIds: { daily_a: true },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.hiddenTaskIds).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('falls back to an absent hiddenTaskIds when an array element is not a string', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      hiddenTaskIds: ['daily_a', 3],
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.hiddenTaskIds).toBeUndefined()
+    }
+  })
 })
 
 describe('backupCorruptedStore', () => {

@@ -13,6 +13,7 @@ export type Action =
       taskId: string
       toIndex: number
     }
+  | { type: 'setTaskHidden'; taskId: string; hidden: boolean }
 
 export const addCharacter = (name: string): Action => ({
   type: 'addCharacter',
@@ -60,4 +61,10 @@ export const moveTask = (
   section,
   taskId,
   toIndex,
+})
+
+export const setTaskHidden = (taskId: string, hidden: boolean): Action => ({
+  type: 'setTaskHidden',
+  taskId,
+  hidden,
 })

@@ -255,5 +255,17 @@ export const reducer = (store: Store, action: Action): Store => {
         taskOrder: { daily: dailyOrder, weekly: weeklyOrder },
       }
     }
+
+    case 'setTaskHidden': {
+      const currentHiddenTaskIds = store.hiddenTaskIds ?? []
+      const isHidden = currentHiddenTaskIds.includes(action.taskId)
+      if (action.hidden === isHidden) {
+        return store
+      }
+      const hiddenTaskIds = action.hidden
+        ? [...currentHiddenTaskIds, action.taskId]
+        : currentHiddenTaskIds.filter((id) => id !== action.taskId)
+      return { ...store, hiddenTaskIds }
+    }
   }
 }
