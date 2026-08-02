@@ -20,16 +20,13 @@ function App() {
     <StoreProvider>
       <div className="app-shell">
         <header className="app-header">
+          <div className="app-header-titles">
+            <h1>BPSR Checklist</h1>
+            <p className="app-header-subtitle">
+              Blue Protocol: Star Resonance デイリー/ウィークリータスク管理
+            </p>
+          </div>
           <div className="app-header-actions">
-            <button
-              type="button"
-              ref={openButtonRef}
-              className="settings-toggle"
-              onClick={() => setIsSettingsOpen(true)}
-              aria-label="設定を開く"
-            >
-              ⚙
-            </button>
             <button
               type="button"
               className="theme-toggle"
@@ -42,17 +39,19 @@ function App() {
             >
               {theme === 'dark' ? '☀' : '🌙'}
             </button>
+            <button
+              type="button"
+              ref={openButtonRef}
+              className="settings-toggle"
+              onClick={() => setIsSettingsOpen(true)}
+              aria-label="設定を開く"
+            >
+              ⚙
+            </button>
           </div>
         </header>
-        <StatusBanner />
         <main className="app-layout">
-          <header className="app-intro">
-            <h1>BPSR Checklist</h1>
-            <p>
-              Blue Protocol: Star Resonance
-              のデイリー/ウィークリータスク管理ツール
-            </p>
-          </header>
+          <StatusBanner />
           <MatrixView />
         </main>
         {isSettingsOpen && <SettingsModal onClose={closeSettings} />}

@@ -8,8 +8,9 @@ export function StatusBanner() {
   }
 
   return (
-    <p role="alert" className="status-banner">
-      <span aria-hidden="true">⚠</span> {message}
-    </p>
+    <div role="alert" className="status-banner">
+      <span aria-hidden="true">⚠</span>
+      <span>{message}</span>
+    </div>
   )
 }
