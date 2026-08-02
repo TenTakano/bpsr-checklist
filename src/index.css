@@ -20,7 +20,6 @@
 
   --bg: #f4f5f7;
   --surface: #ffffff;
-  /* Reserved for Part 2+: hover state background (no consumers yet). */
   --surface-hover: #eceff3;
   --border: #dfe1e6;
   --text: #3f4451;
@@ -31,7 +30,6 @@
   --danger-border: #c8283f;
   --danger-text: #8a1626;
 
-  /* Reserved for Part 2+: elevation styling (no consumers yet). */
   --shadow-sm: 0 1px 2px rgb(16 20 31 / 6%);
   --shadow-md: 0 4px 12px rgb(16 20 31 / 10%);
 

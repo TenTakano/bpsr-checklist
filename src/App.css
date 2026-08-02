@@ -107,14 +107,16 @@
 
 .modal {
   width: 100%;
-  max-width: 480px;
+  max-width: 640px;
   max-height: 80vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  padding: var(--space-5);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -122,7 +124,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  flex-shrink: 0;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-header h2 {
@@ -148,25 +152,184 @@
 
 .modal-close:hover {
   border-color: var(--accent);
+  background: var(--surface-hover);
 }
 
-.task-visibility-section {
-  margin-top: var(--space-3);
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.modal-section-title {
+  margin: 0 0 var(--space-3);
+  color: var(--text-h);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.modal-subsection-title {
+  margin: 0 0 var(--space-2);
+  color: var(--text-h);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.character-manager {
+  display: flex;
+  flex-direction: column;
+}
+
+.character-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.character-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.character-form-field label {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.text-input {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.text-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.btn {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+  color: var(--accent);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn--danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.btn--danger:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.character-empty {
+  color: var(--text-muted);
+}
+
+.character-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.character-row,
+.character-rename-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.character-row:hover {
+  background: var(--surface-hover);
+}
+
+.character-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.task-visibility {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-visibility-section + .task-visibility-section {
+  margin-top: var(--space-4);
 }
 
 .task-visibility-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 200px;
-  overflow-y: auto;
 }
 
-.task-visibility-list li {
+.task-visibility-item {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.task-visibility-item:hover {
+  background: var(--surface-hover);
+}
+
+.task-visibility-label {
+  flex: 1;
+  min-width: 0;
   padding: var(--space-1) 0;
+  cursor: pointer;
+}
+
+.checkbox-input {
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .matrix-view {

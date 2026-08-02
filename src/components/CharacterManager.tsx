@@ -63,71 +63,85 @@ export function CharacterManager() {
   }
 
   return (
-    <section aria-label="キャラクター管理">
-      <h3>キャラクター管理</h3>
-      <form onSubmit={handleAdd}>
-        <label htmlFor="new-character-name">キャラクター名</label>
-        <input
-          id="new-character-name"
-          value={newName}
-          maxLength={MAX_CHARACTER_NAME_LENGTH}
-          disabled={isReadOnly}
-          onChange={(event) => setNewName(event.target.value)}
-        />
-        <button type="submit" disabled={isReadOnly}>
+    <section aria-label="キャラクター管理" className="character-manager">
+      <h3 className="modal-section-title">キャラクター管理</h3>
+      <form className="character-form" onSubmit={handleAdd}>
+        <div className="character-form-field">
+          <label htmlFor="new-character-name">キャラクター名</label>
+          <input
+            id="new-character-name"
+            className="text-input"
+            value={newName}
+            maxLength={MAX_CHARACTER_NAME_LENGTH}
+            disabled={isReadOnly}
+            onChange={(event) => setNewName(event.target.value)}
+          />
+        </div>
+        <button type="submit" className="btn" disabled={isReadOnly}>
           追加
         </button>
       </form>
 
       {store.characters.length === 0 ? (
-        <p>{NO_CHARACTERS_MESSAGE}</p>
+        <p className="character-empty">{NO_CHARACTERS_MESSAGE}</p>
       ) : (
-        <ul>
+        <ul className="character-list">
           {store.characters.map((character) => (
             <li key={character.id}>
               {editingId === character.id ? (
                 <form
+                  className="character-rename-form"
                   onSubmit={(event) => handleRenameSubmit(event, character.id)}
                 >
-                  <label htmlFor={`rename-${character.id}`}>
-                    {character.name} の新しい名前
-                  </label>
-                  <input
-                    id={`rename-${character.id}`}
-                    value={editingName}
-                    maxLength={MAX_CHARACTER_NAME_LENGTH}
-                    onChange={(event) => setEditingName(event.target.value)}
-                  />
-                  <button type="submit">保存</button>
-                  <button type="button" onClick={cancelEditing}>
+                  <div className="character-form-field">
+                    <label htmlFor={`rename-${character.id}`}>
+                      {character.name} の新しい名前
+                    </label>
+                    <input
+                      id={`rename-${character.id}`}
+                      className="text-input"
+                      value={editingName}
+                      maxLength={MAX_CHARACTER_NAME_LENGTH}
+                      onChange={(event) => setEditingName(event.target.value)}
+                    />
+                  </div>
+                  <button type="submit" className="btn">
+                    保存
+                  </button>
+                  <button type="button" className="btn" onClick={cancelEditing}>
                     キャンセル
                   </button>
                 </form>
               ) : (
-                <>
-                  <span>{character.name}</span>
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => startEditing(character.id, character.name)}
-                  >
-                    リネーム
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleDuplicate(character.id)}
-                  >
-                    複製
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleRemove(character.id, character.name)}
-                  >
-                    削除
-                  </button>
-                </>
+                <div className="character-row">
+                  <span className="character-name">{character.name}</span>
+                  <div className="character-actions">
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={isReadOnly}
+                      onClick={() => startEditing(character.id, character.name)}
+                    >
+                      リネーム
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={isReadOnly}
+                      onClick={() => handleDuplicate(character.id)}
+                    >
+                      複製
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      disabled={isReadOnly}
+                      onClick={() => handleRemove(character.id, character.name)}
+                    >
+                      削除
+                    </button>
+                  </div>
+                </div>
               )}
             </li>
           ))}
