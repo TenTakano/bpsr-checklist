@@ -29,7 +29,7 @@ function App() {
           <div className="app-header-actions">
             <button
               type="button"
-              className="theme-toggle"
+              className="icon-toggle theme-toggle"
               onClick={toggleTheme}
               aria-label={
                 theme === 'dark'
@@ -42,7 +42,7 @@ function App() {
             <button
               type="button"
               ref={openButtonRef}
-              className="settings-toggle"
+              className="icon-toggle settings-toggle"
               onClick={() => setIsSettingsOpen(true)}
               aria-label="設定を開く"
             >

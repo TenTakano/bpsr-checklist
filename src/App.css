@@ -45,42 +45,29 @@
   flex-shrink: 0;
 }
 
+.icon-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-toggle:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
 .theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-h);
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.theme-toggle:hover {
-  border-color: var(--accent);
-}
-
-.settings-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-h);
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.settings-toggle:hover {
-  border-color: var(--accent);
+  /* emoji glyphs ignore `color`; force theming via grayscale */
+  filter: grayscale(1);
 }
 
 .status-banner {
