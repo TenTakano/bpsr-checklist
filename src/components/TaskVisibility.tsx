@@ -15,8 +15,8 @@ export function TaskVisibility() {
   const hiddenTaskIds = new Set(store.hiddenTaskIds ?? [])
 
   return (
-    <section aria-label="タスク表示">
-      <h3>タスク表示</h3>
+    <section aria-label="タスク表示" className="task-visibility">
+      <h3 className="modal-section-title">タスク表示</h3>
       <TaskVisibilitySection
         title="デイリー"
         tasks={DAILY_TASKS}
@@ -52,24 +52,27 @@ function TaskVisibilitySection({
 }: TaskVisibilitySectionProps) {
   return (
     <div className="task-visibility-section">
-      <h4>{title}</h4>
+      <h4 className="modal-subsection-title">{title}</h4>
       <ul className="task-visibility-list">
         {tasks.map((task) => {
           const label = getTaskLabel(task)
           const inputId = `task-visibility-${task.id}`
           const isChecked = !hiddenTaskIds.has(task.id)
           return (
-            <li key={task.id}>
+            <li key={task.id} className="task-visibility-item">
               <input
                 id={inputId}
                 type="checkbox"
+                className="checkbox-input"
                 checked={isChecked}
                 disabled={isReadOnly}
                 onChange={(event) =>
                   dispatch(setTaskHidden(task.id, !event.target.checked))
                 }
               />
-              <label htmlFor={inputId}>{label}</label>
+              <label htmlFor={inputId} className="task-visibility-label">
+                {label}
+              </label>
             </li>
           )
         })}

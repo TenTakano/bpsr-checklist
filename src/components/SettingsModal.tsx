@@ -79,8 +79,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             ×
           </button>
         </div>
-        <CharacterManager />
-        <TaskVisibility />
+        <div className="modal-body">
+          <CharacterManager />
+          <TaskVisibility />
+        </div>
       </div>
     </div>
   )
