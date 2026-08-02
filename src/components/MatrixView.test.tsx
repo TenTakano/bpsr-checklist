@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import upstreamTasksDocument from '../data/upstreamTasks.json'
-import { getTaskLabel } from '../data/taskLabel'
+import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import {
   DEFAULT_CHARACTER,
   emptyStore,
@@ -68,6 +68,26 @@ const fakeDataTransfer = () => {
     },
     getData: (format: string) => data[format] ?? '',
   }
+}
+
+// The task-label `th` doesn't expose the row directly, so tests that need
+// the `tr` (for drag handles or row-level class assertions) locate it via
+// the task-label's `title`.
+const getRowByLabel = (label: string) => {
+  const row = screen.getByTitle(label).closest('tr')
+  if (row === null) {
+    throw new Error(`row not found for label: ${label}`)
+  }
+  return row
+}
+
+// Drag origin lives on the handle button in the row's leftmost cell, not on
+// the task-label `th` itself.
+const getDragHandle = (label: string) => {
+  const row = getRowByLabel(label)
+  return within(row).getByRole('button', {
+    name: `${label} をドラッグして並べ替え`,
+  })
 }
 
 describe('MatrixView / empty state', () => {
@@ -244,9 +264,7 @@ describe('MatrixView / task order buttons', () => {
 describe('MatrixView / drag and drop reordering', () => {
   it('dispatches moveTask with the drop target index when a row is dragged within the same section', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const source = screen.getByTitle(
-      getTaskLabel(upstreamTasksDocument.daily[0]),
-    )
+    const source = getDragHandle(getTaskLabel(upstreamTasksDocument.daily[0]))
     const target = screen.getByTitle(
       getTaskLabel(upstreamTasksDocument.daily[2]),
     )
@@ -261,7 +279,7 @@ describe('MatrixView / drag and drop reordering', () => {
 
   it('ignores a drop when the dragged row belongs to a different section', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const dailySource = screen.getByTitle(
+    const dailySource = getDragHandle(
       getTaskLabel(upstreamTasksDocument.daily[0]),
     )
     const weeklyTarget = screen.getByTitle(
@@ -277,15 +295,94 @@ describe('MatrixView / drag and drop reordering', () => {
 
   it('does not dispatch when dropping a row onto itself', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const source = screen.getByTitle(
-      getTaskLabel(upstreamTasksDocument.daily[0]),
-    )
+    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const source = getDragHandle(label)
+    const target = screen.getByTitle(label)
     const dataTransfer = fakeDataTransfer()
 
     fireEvent.dragStart(source, { dataTransfer })
-    fireEvent.drop(source, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
 
     expect(dispatch).not.toHaveBeenCalled()
+  })
+
+  it('adds matrix-row--dragging to the row being dragged', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const source = getDragHandle(label)
+    const row = getRowByLabel(label)
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+
+    expect(row).toHaveClass('matrix-row--dragging')
+  })
+})
+
+describe('MatrixView / drag insertion indicator direction', () => {
+  it.each([
+    {
+      name: 'shows a below-indicator on the drop target row when dragging downward',
+      sourceIndex: 0,
+      targetIndex: 2,
+      expectedClass: 'matrix-row--drag-over-below',
+      unexpectedClass: 'matrix-row--drag-over-above',
+    },
+    {
+      name: 'shows an above-indicator on the drop target row when dragging upward',
+      sourceIndex: 2,
+      targetIndex: 0,
+      expectedClass: 'matrix-row--drag-over-above',
+      unexpectedClass: 'matrix-row--drag-over-below',
+    },
+  ])(
+    '$name',
+    ({ sourceIndex, targetIndex, expectedClass, unexpectedClass }) => {
+      renderWithContext({ store: storeWithCharacter() })
+      const sourceLabel = getTaskLabel(upstreamTasksDocument.daily[sourceIndex])
+      const targetLabel = getTaskLabel(upstreamTasksDocument.daily[targetIndex])
+      const source = getDragHandle(sourceLabel)
+      const targetCell = screen.getByTitle(targetLabel)
+      const targetRow = getRowByLabel(targetLabel)
+      const dataTransfer = fakeDataTransfer()
+
+      fireEvent.dragStart(source, { dataTransfer })
+      fireEvent.dragOver(targetCell, { dataTransfer })
+
+      expect(targetRow).toHaveClass(expectedClass)
+      expect(targetRow).not.toHaveClass(unexpectedClass)
+    },
+  )
+})
+
+describe('MatrixView / task label note rendering', () => {
+  it('renders the note in a separate element when the label has a note', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const { primary, note } = splitTaskLabel(label)
+    if (note === null) {
+      throw new Error(
+        'expected upstreamTasksDocument.daily[0] label to have a note',
+      )
+    }
+    const row = getRowByLabel(label)
+
+    expect(within(row).getByText(primary)).toHaveClass('matrix-task-label-text')
+    expect(within(row).getByText(note)).toHaveClass('matrix-task-label-note')
+  })
+
+  it('does not render a note element when the label has no note', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    const label = getTaskLabel(upstreamTasksDocument.daily[2])
+    const { note } = splitTaskLabel(label)
+    if (note !== null) {
+      throw new Error(
+        'expected upstreamTasksDocument.daily[2] label to have no note',
+      )
+    }
+    const row = getRowByLabel(label)
+
+    expect(row.querySelector('.matrix-task-label-note')).not.toBeInTheDocument()
   })
 })
 
@@ -345,10 +442,13 @@ describe('MatrixView / readonly mode', () => {
       store: storeWithCharacter(),
       status: 'readonly',
     })
-    const rowHeaders = screen.getAllByRole('rowheader')
-    expect(rowHeaders.length).toBeGreaterThan(0)
-    for (const rowHeader of rowHeaders) {
-      expect(rowHeader).toHaveAttribute('draggable', 'false')
+    const handles = screen.getAllByRole('button', {
+      name: /をドラッグして並べ替え$/,
+    })
+    expect(handles.length).toBeGreaterThan(0)
+    for (const handle of handles) {
+      expect(handle).toBeDisabled()
+      expect(handle).toHaveAttribute('draggable', 'false')
     }
   })
 })
