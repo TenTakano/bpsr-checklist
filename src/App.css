@@ -182,13 +182,27 @@
   margin-bottom: var(--space-6);
 }
 
+.matrix-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
+  border-bottom: 2px solid var(--text-h);
+}
+
+.matrix-section-header h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
 .matrix-scroll {
-  max-height: 42svh;
-  overflow: auto;
+  overflow-x: auto;
   border: 1px solid var(--matrix-border);
 }
 
 .matrix-table {
+  --matrix-handle-width: 44px;
   border-collapse: separate;
   border-spacing: 0;
   width: max-content;
@@ -200,33 +214,57 @@
 .matrix-table td {
   padding: var(--space-1) var(--space-2);
   background: var(--bg);
-  box-shadow:
-    inset -1px 0 0 var(--matrix-border),
-    inset 0 -1px 0 var(--matrix-border);
+  border-right: 1px solid var(--matrix-border);
+  border-bottom: 1px solid var(--matrix-border);
   white-space: nowrap;
 }
 
+.matrix-table th:first-child,
+.matrix-table td:first-child {
+  border-left: 1px solid var(--matrix-border);
+}
+
 .matrix-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  border-top: 1px solid var(--matrix-border);
+  text-align: left;
+}
+
+.matrix-table .matrix-character-header {
   max-width: 140px;
 }
 
-.matrix-table thead th:first-child,
-.matrix-table .matrix-corner-cell {
+.matrix-table .matrix-handle-header,
+.matrix-table .matrix-handle-cell {
   position: sticky;
   left: 0;
+  width: var(--matrix-handle-width);
+  min-width: var(--matrix-handle-width);
+}
+
+.matrix-table .matrix-handle-header {
   z-index: 3;
+}
+
+.matrix-table .matrix-handle-cell {
+  z-index: 1;
+  text-align: center;
+}
+
+.matrix-table .matrix-corner-cell,
+.matrix-table .matrix-task-label {
+  position: sticky;
+  left: var(--matrix-handle-width);
   text-align: left;
+  white-space: normal;
+  min-width: 220px;
+}
+
+.matrix-table .matrix-corner-cell {
+  z-index: 3;
 }
 
 .matrix-table .matrix-task-label {
-  position: sticky;
-  left: 0;
   z-index: 1;
-  text-align: left;
-  max-width: 320px;
   border-left: 4px solid transparent;
 }
 
@@ -240,74 +278,104 @@
 }
 
 .matrix-task-label-text {
-  display: inline-block;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
+  display: block;
 }
 
-.matrix-table .matrix-task-label[draggable='true'] {
-  cursor: grab;
+.matrix-task-label-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
 }
 
-.matrix-row--drag-over .matrix-task-label {
-  box-shadow: inset 0 2px 0 var(--accent);
-}
-
-.matrix-order-controls {
-  display: inline-flex;
-  gap: var(--space-1);
-  margin-left: var(--space-2);
-  vertical-align: middle;
-}
-
-.matrix-order-button {
-  width: 18px;
-  height: 18px;
-  line-height: 1;
+.matrix-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
   padding: 0;
   border: 1px solid var(--matrix-border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-h);
-  cursor: pointer;
-  font-size: var(--font-size-xs);
+  cursor: grab;
+  font-size: var(--font-size-sm);
 }
 
-.matrix-order-button:hover:not(:disabled) {
+.matrix-handle:hover:not(:disabled) {
   border-color: var(--accent);
+  background: var(--surface-hover);
   color: var(--accent);
 }
 
-.matrix-order-button:focus-visible {
+.matrix-handle:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.matrix-handle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.matrix-order-button:disabled {
+.matrix-handle:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
+.matrix-row:hover td,
+.matrix-row:hover th {
+  background: var(--surface-hover);
+}
+
+.matrix-row--dragging td,
+.matrix-row--dragging th {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.matrix-row--drag-over-above td,
+.matrix-row--drag-over-above th {
+  border-top: 3px solid var(--accent);
+}
+
+.matrix-row--drag-over-below td,
+.matrix-row--drag-over-below th {
+  border-bottom: 3px solid var(--accent);
+}
+
 .matrix-cell {
   text-align: center;
+  padding: 0;
 }
 
 .matrix-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin: 0 auto;
-  border: 2px solid var(--matrix-border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: transparent;
   cursor: pointer;
   font-size: 0;
+}
+
+.matrix-toggle::before {
+  content: '';
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--matrix-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
 .matrix-toggle::after {
@@ -315,18 +383,25 @@
 }
 
 .matrix-toggle:hover:not(:disabled) {
-  border-color: var(--accent);
+  background: var(--surface-hover);
 }
 
 .matrix-toggle:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .matrix-toggle--done {
   background: var(--matrix-complete-bg);
-  border-color: var(--matrix-complete-bg);
   color: var(--matrix-complete-fg);
+}
+
+.matrix-toggle--done:hover:not(:disabled) {
+  background: var(--matrix-complete-bg);
+}
+
+.matrix-toggle--done::before {
+  display: none;
 }
 
 .matrix-toggle--done::after {
@@ -344,7 +419,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   gap: var(--space-1);
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
 }
 
 .matrix-counter-button {
