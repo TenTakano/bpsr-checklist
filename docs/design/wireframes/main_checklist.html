@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>ワイヤーフレーム: メイン画面 (main_checklist)</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: sans-serif;
+        font-size: 14px;
+        color: #333;
+        background: #fff;
+        padding: 24px;
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+
+      /* ヘッダー: 中央大見出しをやめ、1行のコンパクトバーに */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #999;
+        padding: 10px 16px;
+        margin-bottom: 16px;
+      }
+      .header .title {
+        font-size: 16px;
+        font-weight: bold;
+      }
+      .header .subtitle {
+        font-size: 11px;
+        color: #777;
+        margin-left: 12px;
+      }
+      .header .actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        border: 1px solid #999;
+        background: #fff;
+        padding: 4px 10px;
+        font-size: 12px;
+        color: #333;
+      }
+
+      /* サマリーパネル: 全体俯瞰の起点 */
+      .summary {
+        border: 1px solid #999;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+      }
+      .summary h2 {
+        font-size: 12px;
+        color: #777;
+        font-weight: normal;
+        margin-bottom: 8px;
+      }
+      .summary-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .summary-row:last-child {
+        margin-bottom: 0;
+      }
+      .summary-label {
+        width: 90px;
+        font-weight: bold;
+        font-size: 13px;
+      }
+      .bar {
+        flex: 1;
+        height: 14px;
+        border: 1px solid #999;
+        background: #fff;
+        position: relative;
+      }
+      .bar .fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        background: #bbb;
+      }
+      .summary-count {
+        width: 60px;
+        text-align: right;
+        font-size: 13px;
+      }
+      .summary-per-char {
+        font-size: 11px;
+        color: #777;
+        width: 220px;
+      }
+
+      /* セクション: 見出し + 達成数 + セクション操作の右寄せ */
+      .section {
+        margin-bottom: 28px;
+      }
+      .section-header {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        padding: 6px 2px;
+        border-bottom: 2px solid #333;
+        margin-bottom: 0;
+      }
+      .section-header h2 {
+        font-size: 15px;
+      }
+      .section-header .progress {
+        font-size: 12px;
+        color: #777;
+      }
+      .section-header .spacer {
+        flex: 1;
+      }
+      .section-header .section-action {
+        font-size: 11px;
+        color: #777;
+        border: 1px solid #bbb;
+        padding: 2px 8px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #bbb;
+        padding: 8px 10px;
+        vertical-align: middle;
+      }
+      thead th {
+        background: #f2f2f2;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: left;
+      }
+      th.char-col,
+      td.cell {
+        width: 150px;
+        text-align: center;
+      }
+
+      /* 並べ替えハンドル列: タスク名から分離した専用の細列 */
+      td.handle {
+        width: 26px;
+        background: #f7f7f7;
+        text-align: center;
+        color: #999;
+        font-size: 10px;
+        padding: 4px 2px;
+      }
+
+      /* タスク名列: 固定幅+省略をやめ、可変幅+折り返し (#39) */
+      td.task-name {
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      td.task-name .task-color {
+        display: inline-block;
+        width: 4px;
+        height: 14px;
+        background: #777;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      td.task-name .note {
+        font-size: 11px;
+        color: #888;
+      }
+
+      /* チェックセル: セル全体がクリック領域。完了はセル背景で示す */
+      .checkbox {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 1px solid #777;
+        background: #fff;
+        vertical-align: middle;
+      }
+      td.cell.done {
+        background: #ddd;
+      }
+      td.cell.done .checkbox {
+        background: #555;
+        border-color: #555;
+      }
+
+      /* 詳細カウントセル（タスクごとの設定で選択した場合のみ）: セルクリックで+1、取り消しはホバー時のみ表示 */
+      .counter {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .counter .value {
+        min-width: 40px;
+        text-align: center;
+        font-size: 13px;
+      }
+      .counter .undo {
+        width: 20px;
+        height: 20px;
+        border: 1px dashed #999;
+        background: #fff;
+        font-size: 12px;
+        line-height: 18px;
+        text-align: center;
+        color: #999;
+      }
+
+      /* 並べ替え中の状態表現 (#41): ドラッグ中の行 + 挿入位置インジケータ */
+      tr.dragging td {
+        background: #eee;
+        color: #aaa;
+        border-style: dashed;
+      }
+      tr.drop-indicator td {
+        border: 0;
+        border-top: 4px solid #555;
+        padding: 0;
+        height: 0;
+      }
+
+      /* タスク追加の動線: 各セクション末尾のゴースト行。クリックで追加モーダルを開く */
+      tr.add-row td {
+        border: 1px dashed #999;
+        color: #777;
+        font-size: 12px;
+        padding: 8px 10px;
+        background: #fafafa;
+      }
+
+      .legend {
+        border: 1px dashed #999;
+        padding: 12px 16px;
+        margin-top: 32px;
+        font-size: 12px;
+        color: #555;
+      }
+      .legend h2 {
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      .legend ol {
+        margin-left: 18px;
+      }
+      .legend li {
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div style="display: flex; align-items: baseline">
+        <span class="title">BPSR Checklist</span>
+        <span class="subtitle"
+          >Blue Protocol: Star Resonance デイリー/ウィークリータスク管理</span
+        >
+      </div>
+      <div class="actions">
+        <span class="btn">テーマ切替</span>
+        <span class="btn">設定</span>
+      </div>
+    </div>
+
+    <div class="summary">
+      <h2>全体進捗</h2>
+      <div class="summary-row">
+        <span class="summary-label">デイリー</span>
+        <div class="bar"><div class="fill" style="width: 33%"></div></div>
+        <span class="summary-count">6 / 18</span>
+        <span class="summary-per-char">メインキャラ 4/9 ・ サブキャラ 2/9</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">ウィークリー</span>
+        <div class="bar"><div class="fill" style="width: 14%"></div></div>
+        <span class="summary-count">4 / 28</span>
+        <span class="summary-per-char"
+          >メインキャラ 3/14 ・ サブキャラ 1/14</span
+        >
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">マイルストーン</span>
+        <div class="bar"><div class="fill" style="width: 25%"></div></div>
+        <span class="summary-count">1 / 4</span>
+        <span class="summary-per-char">メインキャラ 1/2 ・ サブキャラ 0/2</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>デイリー</h2>
+        <span class="progress">6 / 18 完了</span>
+        <span class="spacer"></span>
+        <span class="section-action">表示タスク設定</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>タスク</th>
+            <th class="char-col">メインキャラ</th>
+            <th class="char-col">サブキャラ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>神秘ストア（好きな物を購入）
+              <span class="note">シーズンパスで+1回更新</span>
+            </td>
+            <td class="cell done"><span class="checkbox"></span></td>
+            <td class="cell"><span class="checkbox"></span></td>
+          </tr>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>不安定な空間（クリア）
+              <span class="note"
+                >回数タスクだが既定はチェックボックス表示（1クリックで完了扱い）</span
+              >
+            </td>
+            <td class="cell done"><span class="checkbox"></span></td>
+            <td class="cell"><span class="checkbox"></span></td>
+          </tr>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span
+              >ギルドチェックイン＆ギルド輸送（ギルドセンターのローラ＆ダグラス）
+              <span class="note"
+                >長いタスク名は省略せず折り返して全文表示する（#39）</span
+              >
+            </td>
+            <td class="cell"><span class="checkbox"></span></td>
+            <td class="cell done"><span class="checkbox"></span></td>
+          </tr>
+          <tr class="dragging">
+            <td class="handle">並替</td>
+            <td class="task-name">
+              開拓局の依頼（ドラッグ中の行: 半透明・破線でゴースト化）
+            </td>
+            <td class="cell">…</td>
+            <td class="cell">…</td>
+          </tr>
+          <tr class="drop-indicator">
+            <td colspan="4"></td>
+          </tr>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>ホーム納品
+              <span class="note"
+                >最大2日スキップ可（依頼9件）／このタスクのみ設定で「詳細カウント表示」を選択した例</span
+              >
+            </td>
+            <td class="cell">
+              <span class="counter"
+                ><span class="value">1/3</span><span class="undo">−</span></span
+              >
+            </td>
+            <td class="cell">
+              <span class="counter"><span class="value">0/3</span></span>
+            </td>
+          </tr>
+          <tr class="add-row">
+            <td colspan="4">
+              ＋
+              タスクを追加（クリックで追加モーダルを開く。ゲーム規定タスクの下にユーザー独自タスクが並ぶ）
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>ウィークリー</h2>
+        <span class="progress">4 / 28 完了</span>
+        <span class="spacer"></span>
+        <span class="section-action">表示タスク設定</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>タスク</th>
+            <th class="char-col">メインキャラ</th>
+            <th class="char-col">サブキャラ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>開拓者褒賞（開拓局のステラ）
+            </td>
+            <td class="cell done"><span class="checkbox"></span></td>
+            <td class="cell"><span class="checkbox"></span></td>
+          </tr>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>ギルドハント（2回クリア）
+              <span class="note">既定のチェックボックス表示</span>
+            </td>
+            <td class="cell"><span class="checkbox"></span></td>
+            <td class="cell"><span class="checkbox"></span></td>
+          </tr>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span
+              >（以降のタスク行は同一パターンの繰り返しのため省略）
+            </td>
+            <td class="cell"><span class="checkbox"></span></td>
+            <td class="cell"><span class="checkbox"></span></td>
+          </tr>
+          <tr class="add-row">
+            <td colspan="4">＋ タスクを追加</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>マイルストーン</h2>
+        <span class="progress">1 / 4 完了</span>
+        <span class="spacer"></span>
+        <span class="section-action">表示タスク設定</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>タスク</th>
+            <th class="char-col">メインキャラ</th>
+            <th class="char-col">サブキャラ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>武器を+60まで強化
+              <span class="note"
+                >ユーザー追加タスク（長期育成計画の例）。リセットされない</span
+              >
+            </td>
+            <td class="cell">
+              <span class="counter"
+                ><span class="value">42/60</span
+                ><span class="undo">−</span></span
+              >
+            </td>
+            <td class="cell">
+              <span class="counter"><span class="value">10/60</span></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="handle">並替</td>
+            <td class="task-name">
+              <span class="task-color"></span>ギルドイベント用の素材集め
+              <span class="note"
+                >ユーザー追加タスク（ユーザーイベント準備の例）</span
+              >
+            </td>
+            <td class="cell done"><span class="checkbox"></span></td>
+            <td class="cell"><span class="checkbox"></span></td>
+          </tr>
+          <tr class="add-row">
+            <td colspan="4">＋ タスクを追加</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <h2>凡例・構成メモ（ワイヤーフレームの一部ではない）</h2>
+      <ol>
+        <li>
+          ヘッダー:
+          中央寄せ大見出しを廃止し1行バー化。作業領域（マトリクス）を上に引き上げる
+        </li>
+        <li>
+          サマリーパネル:
+          参考サービスのプログレスバー構成を移植し、キャラ横断俯瞰の起点として全体・キャラ別の達成数を表示
+        </li>
+        <li>
+          タスク名列: 可変幅+折り返しで全文表示（#39
+          解消）。補足説明は小さめの淡色テキストで従属表示
+        </li>
+        <li>
+          並べ替えハンドル:
+          タスク名と同居していた↑↓ボタンを左端の専用細列へ分離。実装ではホバー時に強調（#41）
+        </li>
+        <li>
+          ドラッグ中の状態: ゴースト行（破線・淡色）+
+          挿入位置の太線インジケータで「何が起きるか」を可視化（#41 解消）
+        </li>
+        <li>
+          チェックセル:
+          セル全体をクリック領域とし、完了はセル背景の変化で表現（マトリクス俯瞰時に達成分布が面で見える）
+        </li>
+        <li>
+          回数タスクの既定表示:
+          チェックボックス（1クリックで完了扱い）。回数を積み残すケースはまれなため、−/＋カウンターは既定では出さない
+        </li>
+        <li>
+          詳細カウント表示:
+          タスクごとの設定（表示タスク設定内）で選択式。セルクリックで+1、取り消し（−）はホバー時のみ表示して常時のノイズを消す
+        </li>
+        <li>
+          タスク色:
+          現行同様、行頭の色バーとして維持（ワイヤーフレームではグレーで表現）
+        </li>
+        <li>
+          セクションヘッダー:
+          見出し+達成数を左、セクション操作（表示タスク設定への導線）を右寄せ
+        </li>
+        <li>
+          カテゴリは3つ: デイリー / ウィークリー /
+          マイルストーン。マイルストーンはリセットされない長期目標・イベント準備などのユーザー追加タスク置き場
+        </li>
+        <li>
+          ユーザー追加タスク: 各セクション末尾のゴースト行「＋
+          タスクを追加」から追加モーダルを開く（追加先カテゴリは開いたセクションが既定）。デイリー/ウィークリーにもユーザー独自タスクを追加可能で、ゲーム規定タスクの下に並ぶ
+        </li>
+        <li>
+          追加・編集モーダルのデザインは本ワイヤーフレームの対象外（設定モーダル刷新と合わせて別途企画）。編集・削除の一括管理は設定側に置く想定
+        </li>
+      </ol>
+    </div>
+  </body>
+</html>
