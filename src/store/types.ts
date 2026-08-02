@@ -11,4 +11,5 @@ export interface Store {
   resetState?: ResetState
   taskOrder?: TaskOrder
   hiddenTaskIds?: string[]
+  detailedCountTaskIds?: string[]
 }

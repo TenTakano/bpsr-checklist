@@ -18,7 +18,12 @@ export const storeWithCharacter = (
   overrides: Partial<
     Pick<
       Store,
-      'characters' | 'progress' | 'resetState' | 'taskOrder' | 'hiddenTaskIds'
+      | 'characters'
+      | 'progress'
+      | 'resetState'
+      | 'taskOrder'
+      | 'hiddenTaskIds'
+      | 'detailedCountTaskIds'
     >
   > = {},
 ): Store => ({

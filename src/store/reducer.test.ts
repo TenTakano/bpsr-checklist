@@ -9,6 +9,7 @@ import {
   removeCharacter,
   renameCharacter,
   setProgress,
+  setTaskDetailedCount,
   setTaskHidden,
 } from './actions'
 import { evaluateResetState, reducer } from './reducer'
@@ -261,6 +262,44 @@ describe('reducer / setTaskHidden', () => {
   it('is a no-op when unhiding a task that is not hidden', () => {
     const store = emptyStore()
     const result = reducer(store, setTaskHidden(DAILY_TASK_ID, false))
+    expect(result).toBe(store)
+  })
+})
+
+describe('reducer / setTaskDetailedCount', () => {
+  it('adds a taskId to detailedCountTaskIds when enabling detailed count display', () => {
+    const store = emptyStore()
+    const result = reducer(store, setTaskDetailedCount(DAILY_TASK_ID, true))
+    expect(result.detailedCountTaskIds).toEqual([DAILY_TASK_ID])
+  })
+
+  it('removes a taskId from detailedCountTaskIds when disabling detailed count display', () => {
+    const store = storeWithCharacter({
+      detailedCountTaskIds: [DAILY_TASK_ID],
+    })
+    const result = reducer(store, setTaskDetailedCount(DAILY_TASK_ID, false))
+    expect(result.detailedCountTaskIds).toEqual([])
+  })
+
+  it('preserves other detailed count ids untouched', () => {
+    const store = storeWithCharacter({
+      detailedCountTaskIds: [DAILY_TASK_ID, WEEKLY_TASK_ID],
+    })
+    const result = reducer(store, setTaskDetailedCount(DAILY_TASK_ID, false))
+    expect(result.detailedCountTaskIds).toEqual([WEEKLY_TASK_ID])
+  })
+
+  it('is a no-op when enabling detailed count display for a task that already has it enabled', () => {
+    const store = storeWithCharacter({
+      detailedCountTaskIds: [DAILY_TASK_ID],
+    })
+    const result = reducer(store, setTaskDetailedCount(DAILY_TASK_ID, true))
+    expect(result).toBe(store)
+  })
+
+  it('is a no-op when disabling detailed count display for a task that does not have it enabled', () => {
+    const store = emptyStore()
+    const result = reducer(store, setTaskDetailedCount(DAILY_TASK_ID, false))
     expect(result).toBe(store)
   })
 })
