@@ -214,53 +214,6 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
   })
 })
 
-describe('MatrixView / task order buttons', () => {
-  const firstLabel = getTaskLabel(upstreamTasksDocument.daily[0])
-  const lastDailyTask =
-    upstreamTasksDocument.daily[upstreamTasksDocument.daily.length - 1]
-  const lastLabel = getTaskLabel(lastDailyTask)
-
-  it('disables the up button on the first row and the down button on the last row', () => {
-    renderWithContext({ store: storeWithCharacter() })
-    expect(
-      screen.getByRole('button', { name: `${firstLabel} を上に移動` }),
-    ).toBeDisabled()
-    expect(
-      screen.getByRole('button', { name: `${firstLabel} を下に移動` }),
-    ).toBeEnabled()
-    expect(
-      screen.getByRole('button', { name: `${lastLabel} を下に移動` }),
-    ).toBeDisabled()
-    expect(
-      screen.getByRole('button', { name: `${lastLabel} を上に移動` }),
-    ).toBeEnabled()
-  })
-
-  it('dispatches moveTask with the taskOrder-array index when the down button is clicked', async () => {
-    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const button = screen.getByRole('button', {
-      name: `${firstLabel} を下に移動`,
-    })
-    await userEvent.click(button)
-    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', TOGGLE_TASK_ID, 1))
-  })
-
-  it('dispatches moveTask when the up button is clicked', async () => {
-    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const button = screen.getByRole('button', {
-      name: `${lastLabel} を上に移動`,
-    })
-    await userEvent.click(button)
-    expect(dispatch).toHaveBeenCalledWith(
-      moveTask(
-        'daily',
-        lastDailyTask.id,
-        upstreamTasksDocument.daily.length - 2,
-      ),
-    )
-  })
-})
-
 describe('MatrixView / drag and drop reordering', () => {
   it('dispatches moveTask with the drop target index when a row is dragged within the same section', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
@@ -410,17 +363,21 @@ describe('MatrixView / hidden tasks', () => {
     )
   })
 
-  it('keeps the ↑/↓ move target anchored to the full taskOrder position even when a hidden task sits between visible rows', async () => {
+  it('keeps the drag-and-drop target anchored to the full taskOrder position even when a hidden task sits between visible rows', () => {
     const dailyIds = upstreamTasksDocument.daily.map((task) => task.id)
     const { dispatch } = renderWithContext({
       store: storeWithCharacter({ hiddenTaskIds: [dailyIds[1]] }),
     })
+    const firstLabel = getTaskLabel(upstreamTasksDocument.daily[0])
     const thirdLabel = getTaskLabel(upstreamTasksDocument.daily[2])
-    const button = screen.getByRole('button', {
-      name: `${thirdLabel} を上に移動`,
-    })
-    await userEvent.click(button)
-    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[2], 1))
+    const source = getDragHandle(thirdLabel)
+    const target = screen.getByTitle(firstLabel)
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[2], 0))
   })
 })
 

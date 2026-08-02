@@ -107,10 +107,10 @@ function MatrixSection({
     () => resolveTaskOrder(tasks, taskOrder),
     [tasks, taskOrder],
   )
-  // Membership check only, not filtering: index/toIndex math for the
-  // ↑/↓ buttons and drag-and-drop stays anchored to positions within the
-  // full taskOrder array (see moveIdInOrder), so a hidden task keeps its
-  // slot even while its row is not rendered.
+  // Membership check only, not filtering: index/toIndex math for
+  // drag-and-drop stays anchored to positions within the full taskOrder
+  // array (see moveIdInOrder), so a hidden task keeps its slot even while
+  // its row is not rendered.
   const hiddenTaskIdSet = useMemo(
     () => new Set(hiddenTaskIds ?? []),
     [hiddenTaskIds],
@@ -237,41 +237,17 @@ function MatrixSection({
                   onDrop={handleDrop(task.id, index)}
                 >
                   <td className="matrix-handle-cell">
-                    <div className="matrix-handle-group">
-                      <button
-                        type="button"
-                        className="matrix-handle"
-                        aria-label={`${label} をドラッグして並べ替え`}
-                        draggable={!isReadOnly}
-                        disabled={isReadOnly}
-                        onDragStart={handleDragStart(task.id, index)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <span aria-hidden="true">⠿</span>
-                      </button>
-                      <span className="matrix-order-controls">
-                        <button
-                          type="button"
-                          className="matrix-order-button"
-                          aria-label={`${label} を上に移動`}
-                          disabled={isReadOnly || index === 0}
-                          onClick={() => handleMove(task.id, index - 1)}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          className="matrix-order-button"
-                          aria-label={`${label} を下に移動`}
-                          disabled={
-                            isReadOnly || index === orderedTasks.length - 1
-                          }
-                          onClick={() => handleMove(task.id, index + 1)}
-                        >
-                          ↓
-                        </button>
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      className="matrix-handle"
+                      aria-label={`${label} をドラッグして並べ替え`}
+                      draggable={!isReadOnly}
+                      disabled={isReadOnly}
+                      onDragStart={handleDragStart(task.id, index)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <span aria-hidden="true">⠿</span>
+                    </button>
                   </td>
                   <th
                     scope="row"
