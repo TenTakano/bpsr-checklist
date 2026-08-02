@@ -155,9 +155,58 @@ describe('MatrixView / toggle cells (maxProgress = 1)', () => {
   })
 })
 
-describe('MatrixView / counter cells (maxProgress > 1)', () => {
-  it('disables the decrement button and dispatches setProgress on increment when the value is 0', async () => {
+describe('MatrixView / checkbox cells (maxProgress > 1, default)', () => {
+  it('dispatches setProgress with maxProgress when an unchecked cell is clicked', async () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const checkbox = screen.getByRole('button', {
+      name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL}`,
+    })
+    expect(checkbox).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(checkbox)
+    expect(dispatch).toHaveBeenCalledWith(
+      setProgress(CHARACTER_ID, COUNTER_TASK_ID, COUNTER_TASK_MAX),
+    )
+  })
+
+  it('dispatches setProgress with 0 when a completed cell is clicked', async () => {
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({
+        progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: COUNTER_TASK_MAX } },
+      }),
+    })
+    const checkbox = screen.getByRole('button', {
+      name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL}`,
+    })
+    expect(checkbox).toHaveAttribute('aria-pressed', 'true')
+    expect(checkbox).toHaveClass('matrix-toggle--done')
+    await userEvent.click(checkbox)
+    expect(dispatch).toHaveBeenCalledWith(
+      setProgress(CHARACTER_ID, COUNTER_TASK_ID, 0),
+    )
+  })
+
+  it('shows a checked cell when the stored value exceeds maxProgress', () => {
+    renderWithContext({
+      store: storeWithCharacter({
+        progress: {
+          [CHARACTER_ID]: { [COUNTER_TASK_ID]: COUNTER_TASK_MAX + 1 },
+        },
+      }),
+    })
+    const checkbox = screen.getByRole('button', {
+      name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL}`,
+    })
+    expect(checkbox).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('MatrixView / detailed counter cells (maxProgress > 1, detailedCountTaskIds)', () => {
+  it('disables the decrement button and dispatches setProgress on increment when the value is 0', async () => {
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({
+        detailedCountTaskIds: [COUNTER_TASK_ID],
+      }),
+    })
     const decrement = screen.getByRole('button', {
       name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を減らす`,
     })
@@ -175,6 +224,7 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
   it('disables the increment button and marks the value complete once it reaches maxProgress', () => {
     renderWithContext({
       store: storeWithCharacter({
+        detailedCountTaskIds: [COUNTER_TASK_ID],
         progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: COUNTER_TASK_MAX } },
       }),
     })
@@ -186,31 +236,30 @@ describe('MatrixView / counter cells (maxProgress > 1)', () => {
     })
     expect(increment).toBeDisabled()
     expect(decrement).toBeEnabled()
-    const valueDisplay = screen.getByText(
+    expect(increment).toHaveTextContent(
       `${COUNTER_TASK_MAX}/${COUNTER_TASK_MAX}`,
     )
-    expect(valueDisplay).toHaveClass('matrix-counter-value--complete')
+    expect(increment).toHaveClass('matrix-counter-increment--complete')
   })
 
   it('shows an over-max indicator and keeps increment disabled when upstream shrank below the stored value', () => {
     const overValue = COUNTER_TASK_MAX + 1
     renderWithContext({
       store: storeWithCharacter({
+        detailedCountTaskIds: [COUNTER_TASK_ID],
         progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: overValue } },
       }),
     })
-    const valueDisplay = screen.getByText(`${overValue}/${COUNTER_TASK_MAX}`)
-    expect(valueDisplay).toHaveClass('matrix-counter-value--over')
-    expect(
-      screen.getByRole('button', {
-        name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を増やす`,
-      }),
-    ).toBeDisabled()
-    expect(
-      screen.getByRole('button', {
-        name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を減らす`,
-      }),
-    ).toBeEnabled()
+    const increment = screen.getByRole('button', {
+      name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を増やす`,
+    })
+    const decrement = screen.getByRole('button', {
+      name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を減らす`,
+    })
+    expect(increment).toHaveTextContent(`${overValue}/${COUNTER_TASK_MAX}`)
+    expect(increment).toHaveClass('matrix-counter-increment--over')
+    expect(increment).toBeDisabled()
+    expect(decrement).toBeEnabled()
   })
 })
 
@@ -382,9 +431,18 @@ describe('MatrixView / hidden tasks', () => {
 })
 
 describe('MatrixView / readonly mode', () => {
-  it('disables every toggle and counter control', () => {
+  it.each([
+    {
+      name: 'disables every toggle and checkbox control',
+      detailedCountTaskIds: undefined,
+    },
+    {
+      name: 'disables every detailed counter control',
+      detailedCountTaskIds: [COUNTER_TASK_ID],
+    },
+  ])('$name', ({ detailedCountTaskIds }) => {
     renderWithContext({
-      store: storeWithCharacter(),
+      store: storeWithCharacter({ detailedCountTaskIds }),
       status: 'readonly',
     })
     const buttons = screen.getAllByRole('button')

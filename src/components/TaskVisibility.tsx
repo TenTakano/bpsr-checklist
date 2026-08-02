@@ -1,7 +1,7 @@
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { getTaskLabel } from '../data/taskLabel'
 import type { Task } from '../data/taskSchema'
-import { setTaskHidden } from '../store/actions'
+import { setTaskDetailedCount, setTaskHidden } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 
 const DAILY_TASKS: Task[] = upstreamTasksDocument.daily
@@ -13,6 +13,7 @@ export function TaskVisibility() {
   const { store, status, dispatch } = useStore()
   const isReadOnly = status === 'readonly'
   const hiddenTaskIds = new Set(store.hiddenTaskIds ?? [])
+  const detailedCountTaskIds = new Set(store.detailedCountTaskIds ?? [])
 
   return (
     <section aria-label="タスク表示" className="task-visibility">
@@ -21,6 +22,7 @@ export function TaskVisibility() {
         title="デイリー"
         tasks={DAILY_TASKS}
         hiddenTaskIds={hiddenTaskIds}
+        detailedCountTaskIds={detailedCountTaskIds}
         isReadOnly={isReadOnly}
         dispatch={dispatch}
       />
@@ -28,6 +30,7 @@ export function TaskVisibility() {
         title="ウィークリー"
         tasks={WEEKLY_TASKS}
         hiddenTaskIds={hiddenTaskIds}
+        detailedCountTaskIds={detailedCountTaskIds}
         isReadOnly={isReadOnly}
         dispatch={dispatch}
       />
@@ -39,6 +42,7 @@ interface TaskVisibilitySectionProps {
   title: string
   tasks: Task[]
   hiddenTaskIds: Set<string>
+  detailedCountTaskIds: Set<string>
   isReadOnly: boolean
   dispatch: Dispatch
 }
@@ -47,6 +51,7 @@ function TaskVisibilitySection({
   title,
   tasks,
   hiddenTaskIds,
+  detailedCountTaskIds,
   isReadOnly,
   dispatch,
 }: TaskVisibilitySectionProps) {
@@ -73,10 +78,55 @@ function TaskVisibilitySection({
               <label htmlFor={inputId} className="task-visibility-label">
                 {label}
               </label>
+              {task.maxProgress >= 2 && (
+                <TaskDetailedCountToggle
+                  task={task}
+                  label={label}
+                  isChecked={detailedCountTaskIds.has(task.id)}
+                  isReadOnly={isReadOnly}
+                  dispatch={dispatch}
+                />
+              )}
             </li>
           )
         })}
       </ul>
     </div>
+  )
+}
+
+interface TaskDetailedCountToggleProps {
+  task: Task
+  label: string
+  isChecked: boolean
+  isReadOnly: boolean
+  dispatch: Dispatch
+}
+
+function TaskDetailedCountToggle({
+  task,
+  label,
+  isChecked,
+  isReadOnly,
+  dispatch,
+}: TaskDetailedCountToggleProps) {
+  const inputId = `task-detailed-count-${task.id}`
+  return (
+    <span className="task-visibility-detail">
+      <input
+        id={inputId}
+        type="checkbox"
+        className="checkbox-input"
+        checked={isChecked}
+        disabled={isReadOnly}
+        aria-label={`${label} を詳細カウント表示にする`}
+        onChange={(event) =>
+          dispatch(setTaskDetailedCount(task.id, event.target.checked))
+        }
+      />
+      <label htmlFor={inputId} className="task-visibility-detail-label">
+        詳細カウント表示
+      </label>
+    </span>
   )
 }
