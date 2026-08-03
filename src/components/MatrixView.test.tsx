@@ -42,12 +42,13 @@ const renderWithContext = (overrides: Partial<StoreContextValue> = {}) => {
     dispatch,
     ...overrides,
   }
+  const onOpenTaskVisibility = vi.fn()
   render(
     <StoreContext.Provider value={value}>
-      <MatrixView />
+      <MatrixView onOpenTaskVisibility={onOpenTaskVisibility} />
     </StoreContext.Provider>,
   )
-  return { dispatch }
+  return { dispatch, onOpenTaskVisibility }
 }
 
 const secondCharacter: Character = {
@@ -430,6 +431,74 @@ describe('MatrixView / hidden tasks', () => {
   })
 })
 
+const getSectionHeader = (title: string) => {
+  const heading = screen.getByRole('heading', { name: title })
+  const header = heading.closest('.matrix-section-header')
+  if (header === null) {
+    throw new Error(`section header not found for title: ${title}`)
+  }
+  return header as HTMLElement
+}
+
+describe('MatrixView / section header progress', () => {
+  it('shows the summarizeCategoryProgress completed/total counts for the section', () => {
+    const dailyTotal = upstreamTasksDocument.daily.length
+    renderWithContext({
+      store: storeWithCharacter({
+        progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
+      }),
+    })
+    expect(
+      within(getSectionHeader('デイリー')).getByText(`1 / ${dailyTotal} 完了`),
+    ).toBeInTheDocument()
+  })
+
+  it('excludes a hidden task from the denominator', () => {
+    const dailyTotal = upstreamTasksDocument.daily.length
+    renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: [TOGGLE_TASK_ID] }),
+    })
+    expect(
+      within(getSectionHeader('デイリー')).getByText(
+        `0 / ${dailyTotal - 1} 完了`,
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('shows 0 / 0 完了 and keeps the 表示タスク設定 button when every task in the section is hidden', () => {
+    const allDailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: allDailyIds }),
+    })
+    const header = getSectionHeader('デイリー')
+    expect(within(header).getByText('0 / 0 完了')).toBeInTheDocument()
+    expect(
+      within(header).getByRole('button', { name: '表示タスク設定' }),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('MatrixView / task visibility trigger', () => {
+  it.each([
+    { title: 'デイリー', section: 'daily' },
+    { title: 'ウィークリー', section: 'weekly' },
+  ])(
+    'calls onOpenTaskVisibility with the section and the clicked trigger element ($section)',
+    async ({ title, section }) => {
+      const { onOpenTaskVisibility } = renderWithContext({
+        store: storeWithCharacter(),
+      })
+      const button = within(getSectionHeader(title)).getByRole('button', {
+        name: '表示タスク設定',
+      })
+
+      await userEvent.click(button)
+
+      expect(onOpenTaskVisibility).toHaveBeenCalledWith(section, button)
+    },
+  )
+})
+
 describe('MatrixView / readonly mode', () => {
   it.each([
     {
@@ -445,10 +514,29 @@ describe('MatrixView / readonly mode', () => {
       store: storeWithCharacter({ detailedCountTaskIds }),
       status: 'readonly',
     })
-    const buttons = screen.getAllByRole('button')
+    // The 表示タスク設定 button only opens the settings modal (it isn't an
+    // edit action), so like the gear button it stays enabled in readonly
+    // mode and is excluded from this check.
+    const buttons = screen
+      .getAllByRole('button')
+      .filter((button) => button.textContent !== '表示タスク設定')
     expect(buttons.length).toBeGreaterThan(0)
     for (const button of buttons) {
       expect(button).toBeDisabled()
+    }
+  })
+
+  it('keeps the 表示タスク設定 button enabled', () => {
+    renderWithContext({
+      store: storeWithCharacter(),
+      status: 'readonly',
+    })
+    const actionButtons = screen.getAllByRole('button', {
+      name: '表示タスク設定',
+    })
+    expect(actionButtons.length).toBeGreaterThan(0)
+    for (const button of actionButtons) {
+      expect(button).toBeEnabled()
     }
   })
 

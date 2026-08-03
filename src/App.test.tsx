@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
@@ -75,6 +75,92 @@ describe('App / 設定モーダル', () => {
     }
     await user.click(overlay)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('閉じるとフォーカスが歯車ボタンへ戻る', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const gearButton = screen.getByRole('button', { name: '設定を開く' })
+    await user.click(gearButton)
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+
+    expect(gearButton).toHaveFocus()
+  })
+})
+
+describe('App / セクションの表示タスク設定導線', () => {
+  const addCharacterAndCloseSettings = async (
+    user: ReturnType<typeof userEvent.setup>,
+  ) => {
+    await user.click(screen.getByRole('button', { name: '設定を開く' }))
+    await user.type(screen.getByLabelText('キャラクター名'), 'Alice')
+    await user.click(screen.getByRole('button', { name: '追加' }))
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+  }
+
+  it.each([
+    { index: 0, heading: 'デイリー' },
+    { index: 1, heading: 'ウィークリー' },
+  ])(
+    '表示タスク設定ボタンから開くと該当セクションの見出しにフォーカスする ($heading)',
+    async ({ index, heading }) => {
+      const user = userEvent.setup()
+      render(<App />)
+      await addCharacterAndCloseSettings(user)
+
+      const sectionAction = screen.getAllByRole('button', {
+        name: '表示タスク設定',
+      })[index]
+      await user.click(sectionAction)
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: heading, level: 4 }),
+      ).toHaveFocus()
+    },
+  )
+
+  it.each([
+    { index: 0, heading: 'デイリー' },
+    { index: 1, heading: 'ウィークリー' },
+  ])(
+    '表示タスク設定ボタンから開いて閉じるとフォーカスが起点ボタンへ戻る ($heading)',
+    async ({ index }) => {
+      const user = userEvent.setup()
+      render(<App />)
+      await addCharacterAndCloseSettings(user)
+
+      const sectionAction = screen.getAllByRole('button', {
+        name: '表示タスク設定',
+      })[index]
+      await user.click(sectionAction)
+      await user.click(screen.getByRole('button', { name: '閉じる' }))
+
+      expect(sectionAction).toHaveFocus()
+    },
+  )
+
+  it('起点ボタンがDOMから外れている場合は歯車ボタンへフォーカスが戻る', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    render(<App />)
+    await addCharacterAndCloseSettings(user)
+
+    const gearButton = screen.getByRole('button', { name: '設定を開く' })
+    const dailySectionAction = screen.getAllByRole('button', {
+      name: '表示タスク設定',
+    })[0]
+    await user.click(dailySectionAction)
+
+    await user.click(screen.getByRole('button', { name: '削除' }))
+    expect(
+      screen.queryAllByRole('button', { name: '表示タスク設定' }),
+    ).toHaveLength(0)
+
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+
+    expect(gearButton).toHaveFocus()
   })
 })
 

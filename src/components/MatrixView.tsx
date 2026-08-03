@@ -5,6 +5,7 @@ import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
 import { resolveTaskOrder } from '../data/taskOrder'
 import type { Task } from '../data/taskSchema'
+import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { isTaskComplete, readProgressValue } from '../domain/taskProgress'
 import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
@@ -25,7 +26,11 @@ function classNames(
   return [base, ...modifiers.filter(Boolean)].join(' ')
 }
 
-export function MatrixView() {
+interface MatrixViewProps {
+  onOpenTaskVisibility: (section: TaskCategory, trigger: HTMLElement) => void
+}
+
+export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
   const { store, status, dispatch } = useStore()
   const isReadOnly = status === 'readonly'
   const characters = store.characters
@@ -51,6 +56,9 @@ export function MatrixView() {
         progress={store.progress}
         isReadOnly={isReadOnly}
         dispatch={dispatch}
+        onOpenTaskVisibility={(trigger) =>
+          onOpenTaskVisibility('daily', trigger)
+        }
       />
       <MatrixSection
         title="ウィークリー"
@@ -63,6 +71,9 @@ export function MatrixView() {
         progress={store.progress}
         isReadOnly={isReadOnly}
         dispatch={dispatch}
+        onOpenTaskVisibility={(trigger) =>
+          onOpenTaskVisibility('weekly', trigger)
+        }
       />
     </section>
   )
@@ -79,6 +90,7 @@ interface MatrixSectionProps {
   progress: Store['progress']
   isReadOnly: boolean
   dispatch: Dispatch
+  onOpenTaskVisibility: (trigger: HTMLElement) => void
 }
 
 function MatrixSection({
@@ -92,10 +104,15 @@ function MatrixSection({
   progress,
   isReadOnly,
   dispatch,
+  onOpenTaskVisibility,
 }: MatrixSectionProps) {
   const orderedTasks = useMemo(
     () => resolveTaskOrder(tasks, taskOrder),
     [tasks, taskOrder],
+  )
+  const summary = useMemo(
+    () => summarizeCategoryProgress(tasks, characters, progress, hiddenTaskIds),
+    [tasks, characters, progress, hiddenTaskIds],
   )
   // Membership check only, not filtering: index/toIndex math for
   // drag-and-drop stays anchored to positions within the full taskOrder
@@ -164,9 +181,12 @@ function MatrixSection({
   if (!hasVisibleTask) {
     return (
       <div className="matrix-section">
-        <div className="matrix-section-header">
-          <h2>{title}</h2>
-        </div>
+        <MatrixSectionHeader
+          title={title}
+          completed={summary.completed}
+          total={summary.total}
+          onOpenTaskVisibility={onOpenTaskVisibility}
+        />
         <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
       </div>
     )
@@ -174,9 +194,12 @@ function MatrixSection({
 
   return (
     <div className="matrix-section">
-      <div className="matrix-section-header">
-        <h2>{title}</h2>
-      </div>
+      <MatrixSectionHeader
+        title={title}
+        completed={summary.completed}
+        total={summary.total}
+        onOpenTaskVisibility={onOpenTaskVisibility}
+      />
       <div className="matrix-scroll">
         <table className="matrix-table">
           <thead>
@@ -271,6 +294,37 @@ function MatrixSection({
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+interface MatrixSectionHeaderProps {
+  title: string
+  completed: number
+  total: number
+  onOpenTaskVisibility: (trigger: HTMLElement) => void
+}
+
+function MatrixSectionHeader({
+  title,
+  completed,
+  total,
+  onOpenTaskVisibility,
+}: MatrixSectionHeaderProps) {
+  return (
+    <div className="matrix-section-header">
+      <h2>{title}</h2>
+      <span className="matrix-section-progress">
+        {completed} / {total} 完了
+      </span>
+      <span className="matrix-section-spacer" />
+      <button
+        type="button"
+        className="matrix-section-action"
+        onClick={(event) => onOpenTaskVisibility(event.currentTarget)}
+      >
+        表示タスク設定
+      </button>
     </div>
   )
 }

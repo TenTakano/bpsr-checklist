@@ -17,6 +17,7 @@ const createMatchMedia = (matches: boolean): typeof window.matchMedia =>
 beforeEach(() => {
   localStorage.clear()
   window.matchMedia = createMatchMedia(false)
+  Element.prototype.scrollIntoView = vi.fn()
 })
 
 afterEach(() => {
