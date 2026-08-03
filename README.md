@@ -32,6 +32,10 @@ upstream のタスクが追加・削除された際の手順:
 - タスク id の追加・削除を怠ると `src/data/taskLabel.test.ts` のテストが失敗します
 - id が変わらずラベル文言のみが変更された場合、このテストでは検出されません
 
+### upstream 定期同期 workflow
+
+上記の手動更新手順を日次で自動実行する GitHub Actions workflow を用意しています。動作概要・必要なリポジトリ設定は [docs/upstream-sync.md](docs/upstream-sync.md) を参照してください。
+
 ## 開発
 
 Node.js は `^22.13.0 || >=24` が必要です。パッケージマネージャは pnpm を使用します。

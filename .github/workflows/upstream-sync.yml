@@ -1,0 +1,443 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+env:
+  HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+
+jobs:
+  prepare-labels:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Ensure labels exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh label create "upstream-sync" --color "0E8A16" --description "upstream 自動同期PR" --force --repo "${{ github.repository }}"
+          gh label create "upstream-sync-failure" --color "B60205" --description "upstream 同期 workflow の失敗" --force --repo "${{ github.repository }}"
+
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      has_diff: ${{ steps.diff-check.outputs.has_diff }}
+      latest_sha: ${{ steps.check.outputs.latest_sha }}
+      latest_sha_short: ${{ steps.check.outputs.latest_sha_short }}
+      summary: ${{ steps.pr-summary.outputs.summary }}
+      id_renames_detected: ${{ steps.pr-summary.outputs.id_renames_detected }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for upstream changes
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+
+          LATEST_SHA=$(curl -sSfL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/Teawase/blue-protocol-checklist/commits?path=script.js&per_page=1" \
+            | jq -r '.[0].sha')
+
+          if ! [[ "$LATEST_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "upstream の最新コミットSHA取得に失敗しました、または形式が不正です: $LATEST_SHA" >&2
+            exit 1
+          fi
+
+          CURRENT_SHA=$(jq -r '.upstreamCommit // ""' src/data/upstreamTasks.json)
+
+          echo "latest_sha=$LATEST_SHA" >> "$GITHUB_OUTPUT"
+          echo "latest_sha_short=${LATEST_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+          if [ "$LATEST_SHA" = "$CURRENT_SHA" ]; then
+            echo "upstream に変更なし (SHA: $LATEST_SHA)"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "upstream 変更検知: $CURRENT_SHA -> $LATEST_SHA"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download upstream script.js
+        if: steps.check.outputs.changed == 'true'
+        env:
+          LATEST_SHA: ${{ steps.check.outputs.latest_sha }}
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          curl -sSfL \
+            "https://raw.githubusercontent.com/Teawase/blue-protocol-checklist/$LATEST_SHA/script.js" \
+            -o "$RUNNER_TEMP/upstream-script.js"
+
+      - name: Extract upstream tasks
+        if: steps.check.outputs.changed == 'true'
+        env:
+          LATEST_SHA: ${{ steps.check.outputs.latest_sha }}
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          pnpm extract "$RUNNER_TEMP/upstream-script.js" --upstream-commit "$LATEST_SHA"
+
+      - name: Check whether extraction changed the output
+        id: diff-check
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          BEFORE=$(git show HEAD:src/data/upstreamTasks.json | jq 'del(.upstreamCommit)')
+          AFTER=$(jq 'del(.upstreamCommit)' src/data/upstreamTasks.json)
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "抽出結果に実差分なし（メタデータのみのコミットの可能性）"
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "抽出結果に差分あり"
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update translations and generate summary via Claude
+        id: claude
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true' && env.HAS_ANTHROPIC_KEY == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            upstream commit: ${{ steps.check.outputs.latest_sha }}
+
+            `pnpm extract` の実行により `src/data/upstreamTasks.json` が最新の upstream タスク定義
+            （Teawase/blue-protocol-checklist の script.js）に更新されています。
+
+            以下を行ってください:
+            1. `git diff -- src/data/upstreamTasks.json` で変更内容を確認する
+            2. 新規追加・ラベル変更されたタスクについて、`src/data/labels.ja.json` に日本語訳を
+               追記・更新する。既存の対訳の書式（絵文字の踏襲、区切り記号「|」の前後で本文と注記を
+               分ける表記）に合わせること
+            3. id が変わったタスクがあれば、それが同一タスクの改名か別タスクの新設かを判断する。
+               同一タスクの改名と判断した場合は `labels.ja.json` の該当キーを新 id にリネームする
+            4. 進捗（達成状況）はブラウザの localStorage にタスク id をキーとして保存されており、
+               id 改名時にそれを引き継ぐ移行機構はアプリに存在しない。移行コードは書かないこと。
+               id 改名を検出した場合は、既存ユーザーの進捗が引き継がれない可能性がある旨を
+               summary に明記する
+            5. 変更内容の日本語の要約を作成する（PR本文に転記する）
+
+            制約:
+            - 編集してよいのは `src/data/labels.ja.json` のみ。`src/data/upstreamTasks.json` や
+              `src/` 配下の他のファイルは変更しないこと
+            - リポジトリは既にチェックアウト済みで、カレントディレクトリで作業できる
+          claude_args: |
+            --allowedTools "Read(src/data/**),Edit(src/data/labels.ja.json),Bash(git diff -- src/data/upstreamTasks.json),Bash(git log -- src/data/upstreamTasks.json)"
+            --disallowedTools "Read(./.git/**),Read(/proc/**),Read(/sys/**),Read(/etc/**),Read(~/.gitconfig),Read(~/.ssh/**),Read(**/.env),Read(**/.env.*),Bash(env),Bash(printenv)"
+            --json-schema '{"type":"object","properties":{"summary":{"type":"string"},"id_renames_detected":{"type":"boolean"}},"required":["summary","id_renames_detected"]}'
+
+      - name: Validate labels.ja.json content
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+
+          if ! jq -e 'type == "object" and (all(.[]; type == "string"))' src/data/labels.ja.json > /dev/null; then
+            echo "labels.ja.json はフラットな文字列マップである必要があります（プロンプトインジェクション等の疑い）" >&2
+            exit 1
+          fi
+
+          VALID_IDS=$(jq -r '[.daily[], .weekly[]] | .[].id' src/data/upstreamTasks.json | sort -u)
+          MAX_VALUE_LENGTH=300
+
+          while IFS= read -r KEY; do
+            if ! printf '%s\n' "$VALID_IDS" | grep -qxF "$KEY"; then
+              echo "labels.ja.json に未知のタスクidキーが含まれています（プロンプトインジェクション等の疑い）: $KEY" >&2
+              exit 1
+            fi
+
+            VALUE=$(jq -r --arg k "$KEY" '.[$k]' src/data/labels.ja.json)
+
+            if [ "${#VALUE}" -gt "$MAX_VALUE_LENGTH" ]; then
+              echo "labels.ja.json の値が長すぎます（プロンプトインジェクション等の疑い）: $KEY" >&2
+              exit 1
+            fi
+
+            if printf '%s' "$VALUE" | LC_ALL=C grep -qP '[\x00-\x1F]'; then
+              echo "labels.ja.json の値に制御文字が含まれています（プロンプトインジェクション等の疑い）: $KEY" >&2
+              exit 1
+            fi
+          done < <(jq -r 'keys[]' src/data/labels.ja.json)
+
+      - name: Prepare PR summary
+        id: pr-summary
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        env:
+          CLAUDE_STRUCTURED_OUTPUT: ${{ steps.claude.outputs.structured_output }}
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          OUTPUT="${CLAUDE_STRUCTURED_OUTPUT:-}"
+          if [ -n "$OUTPUT" ] && [ "$OUTPUT" != "null" ]; then
+            SUMMARY=$(printf '%s' "$OUTPUT" | jq -r '.summary')
+            RENAMES=$(printf '%s' "$OUTPUT" | jq -r '.id_renames_detected')
+          else
+            SUMMARY="機械的な抽出のみ実行しました（ANTHROPIC_API_KEY 未設定、またはLLMステップが失敗したため要約は生成されていません）。"
+            RENAMES="unknown"
+          fi
+
+          case "$RENAMES" in
+            true|false|unknown) ;;
+            *)
+              echo "id_renames_detected の値が不正です（プロンプトインジェクション等の疑い）: $RENAMES" >&2
+              RENAMES="unknown"
+              ;;
+          esac
+
+          # summary is LLM output derived from an untrusted upstream string, so its length is
+          # capped and it is embedded as a blockquote to suppress arbitrary markdown injection
+          # into the PR body
+          MAX_SUMMARY_LENGTH=4000
+          if [ "${#SUMMARY}" -gt "$MAX_SUMMARY_LENGTH" ]; then
+            SUMMARY="$(printf '%s\n(以下省略: 要約が長すぎるため切り詰めました)' "${SUMMARY:0:$MAX_SUMMARY_LENGTH}")"
+          fi
+
+          # Blockquotes still render inline markdown/HTML, so neutralize @mentions (zero-width
+          # space breaks notification linkification), backslashes (must be escaped first, or a
+          # literal backslash in the input would combine with our own escaping below to produce
+          # an unescaped markdown special character per CommonMark), link/image syntax
+          # (backslash-escaped brackets/parens render as literal characters per CommonMark), and
+          # raw HTML (& and < are escaped so GitHub's HTML subset, e.g. <img>/<a>, cannot be
+          # injected) before quoting
+          ZWSP=$'\xe2\x80\x8b'
+          SUMMARY=$(printf '%s' "$SUMMARY" | sed "s/@/@${ZWSP}/g")
+          SUMMARY=$(printf '%s' "$SUMMARY" | sed -E 's/\\/\\\\/g')
+          SUMMARY=$(printf '%s' "$SUMMARY" | sed -E 's/([][()])/\\\1/g')
+          SUMMARY=$(printf '%s' "$SUMMARY" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g')
+          SUMMARY=$(printf '%s\n' "$SUMMARY" | sed 's/^/> /')
+
+          DELIM="SUMMARY_EOF_$(openssl rand -hex 16)"
+          if printf '%s\n' "$SUMMARY" | grep -qF "$DELIM"; then
+            echo "summary にデリミタと衝突する文字列が含まれています（プロンプトインジェクション等の疑い）" >&2
+            exit 1
+          fi
+          {
+            echo "summary<<$DELIM"
+            echo "$SUMMARY"
+            echo "$DELIM"
+          } >> "$GITHUB_OUTPUT"
+          echo "id_renames_detected=$RENAMES" >> "$GITHUB_OUTPUT"
+
+      - name: Verify changed files are limited to expected paths
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          UNEXPECTED=$(git status --porcelain -- . ':!src/data/upstreamTasks.json' ':!src/data/labels.ja.json')
+          if [ -n "$UNEXPECTED" ]; then
+            echo "許可されていないファイルの変更を検知しました（プロンプトインジェクション等の疑い）:" >&2
+            echo "$UNEXPECTED" >&2
+            exit 1
+          fi
+
+      - name: Lint
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          pnpm lint
+
+      - name: Format check
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          pnpm format:check
+
+      - name: Test
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          pnpm test
+
+      - name: Build
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/sync.log") 2>&1
+          set -euo pipefail
+          pnpm build
+
+      - name: Upload extracted task data
+        if: steps.check.outputs.changed == 'true' && steps.diff-check.outputs.has_diff == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: upstream-sync-data
+          path: |
+            src/data/upstreamTasks.json
+            src/data/labels.ja.json
+          retention-days: 1
+
+      - name: Upload sync log
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: upstream-sync-extract-log
+          path: ${{ runner.temp }}/sync.log
+          retention-days: 1
+
+  report-extract-failure:
+    needs: [prepare-labels, extract]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Download sync log
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: upstream-sync-extract-log
+          path: ${{ runner.temp }}
+
+      - name: Report failure via Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          LABEL="upstream-sync-failure"
+
+          LOG_EXCERPT=""
+          if [ -f "$RUNNER_TEMP/sync.log" ]; then
+            LOG_EXCERPT=$(tail -n 150 "$RUNNER_TEMP/sync.log")
+          fi
+          if [ -z "$LOG_EXCERPT" ]; then
+            LOG_EXCERPT="(ログファイルなし。実行ログを直接確認してください)"
+          fi
+
+          # Redact known secrets because Actions' secret masking does not apply to issue body text
+          for SECRET_VALUE in "${GH_TOKEN:-}" "${ANTHROPIC_API_KEY:-}"; do
+            if [ -n "$SECRET_VALUE" ]; then
+              LOG_EXCERPT="${LOG_EXCERPT//"$SECRET_VALUE"/***REDACTED***}"
+            fi
+          done
+
+          # Strip backticks so upstream-derived log content (e.g. ExtractionError
+          # messages that embed raw source text) cannot break out of the code fence below
+          LOG_EXCERPT=$(printf '%s' "$LOG_EXCERPT" | tr -d '`')
+
+          BODY=$(cat <<EOF
+          upstream 同期 workflow が失敗しました。
+
+          - 実行ログ: $RUN_URL
+          - トリガー: ${{ github.event_name }}
+
+          ### 失敗ログ抜粋
+
+          \`\`\`
+          $LOG_EXCERPT
+          \`\`\`
+          EOF
+          )
+
+          EXISTING=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "upstream 同期 workflow が失敗しました" --label "$LABEL" --body "$BODY"
+          fi
+
+  publish:
+    needs: [prepare-labels, extract]
+    if: needs.extract.outputs.changed == 'true' && needs.extract.outputs.has_diff == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Download extracted task data
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: upstream-sync-data
+          path: src/data
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          token: ${{ github.token }}
+          branch: upstream_sync
+          delete-branch: false
+          draft: false
+          commit-message: 'upstream タスクデータを同期 (${{ needs.extract.outputs.latest_sha_short }})'
+          title: '[upstream-sync] タスクデータ更新 (${{ needs.extract.outputs.latest_sha_short }})'
+          labels: upstream-sync
+          body: |
+            upstream（[Teawase/blue-protocol-checklist](https://github.com/Teawase/blue-protocol-checklist)）
+            のタスクデータ更新を自動検知し、`pnpm extract` で正規化した内容です。
+
+            - upstream コミット: https://github.com/Teawase/blue-protocol-checklist/commit/${{ needs.extract.outputs.latest_sha }}
+            - チェック結果: lint / format:check / test / build すべて通過
+            - id 改名の可能性（LLM判断）: ${{ needs.extract.outputs.id_renames_detected }}
+
+            ### 変更要約
+
+            ${{ needs.extract.outputs.summary }}
+
+            ---
+
+            このPRは `.github/workflows/upstream-sync.yml` により自動生成されています。
+            進捗データ（localStorage）のid改名マイグレーション機構は存在しないため、
+            id改名が絡む場合は内容をよく確認してからマージしてください。
+
+      - name: Report failure via Issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          LABEL="upstream-sync-failure"
+          BODY="upstream 同期 workflow が失敗しました。
+
+          - 実行ログ: $RUN_URL
+          - トリガー: ${{ github.event_name }}
+          - 失敗ジョブ: publish（PR作成）"
+
+          EXISTING=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "upstream 同期 workflow が失敗しました" --label "$LABEL" --body "$BODY"
+          fi
