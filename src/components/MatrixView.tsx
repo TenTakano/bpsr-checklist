@@ -5,7 +5,7 @@ import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
 import { resolveTaskOrder } from '../data/taskOrder'
 import type { Task } from '../data/taskSchema'
-import { isTaskComplete } from '../domain/taskProgress'
+import { isTaskComplete, readProgressValue } from '../domain/taskProgress'
 import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
@@ -23,21 +23,6 @@ function classNames(
   ...modifiers: (string | false | null | undefined)[]
 ): string {
   return [base, ...modifiers.filter(Boolean)].join(' ')
-}
-
-function progressValue(
-  progress: Store['progress'],
-  characterId: string,
-  taskId: string,
-): number {
-  if (!Object.hasOwn(progress, characterId)) {
-    return 0
-  }
-  const characterProgress = progress[characterId]
-  if (!Object.hasOwn(characterProgress, taskId)) {
-    return 0
-  }
-  return characterProgress[taskId] ?? 0
 }
 
 export function MatrixView() {
@@ -274,7 +259,7 @@ function MatrixSection({
                       key={character.id}
                       character={character}
                       task={task}
-                      value={progressValue(progress, character.id, task.id)}
+                      value={readProgressValue(progress, character.id, task.id)}
                       isDetailedCount={detailedCountTaskIdSet.has(task.id)}
                       isReadOnly={isReadOnly}
                       dispatch={dispatch}
