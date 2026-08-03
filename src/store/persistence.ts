@@ -1,6 +1,7 @@
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import {
   CharacterSchema,
+  DetailedCountTaskIdsSchema,
   HiddenTaskIdsSchema,
   ProgressValueSchema,
   ResetStateSchema,
@@ -99,6 +100,7 @@ const extraTopLevelFields = (
         key !== 'resetState' &&
         key !== 'taskOrder' &&
         key !== 'hiddenTaskIds' &&
+        key !== 'detailedCountTaskIds' &&
         !UNSAFE_OBJECT_KEYS.has(key),
     ),
   )
@@ -124,6 +126,16 @@ const rescueTaskOrder = (raw: unknown): Store['taskOrder'] => {
 // showing every task instead of losing the rest of the store.
 const rescueHiddenTaskIds = (raw: unknown): Store['hiddenTaskIds'] => {
   const result = HiddenTaskIdsSchema.safeParse(raw)
+  return result.success ? result.data : undefined
+}
+
+// An invalid detailedCountTaskIds degrades to "absent" (undefined) rather
+// than rejecting the whole store, so the MatrixView/TaskVisibility fall back
+// to the default checkbox display instead of losing the rest of the store.
+const rescueDetailedCountTaskIds = (
+  raw: unknown,
+): Store['detailedCountTaskIds'] => {
+  const result = DetailedCountTaskIdsSchema.safeParse(raw)
   return result.success ? result.data : undefined
 }
 
@@ -155,6 +167,9 @@ export const loadStore = (): LoadResult => {
   const resetState = rescueResetState(topLevel.data.resetState)
   const taskOrder = rescueTaskOrder(topLevel.data.taskOrder)
   const hiddenTaskIds = rescueHiddenTaskIds(topLevel.data.hiddenTaskIds)
+  const detailedCountTaskIds = rescueDetailedCountTaskIds(
+    topLevel.data.detailedCountTaskIds,
+  )
 
   return {
     status: 'ok',
@@ -167,6 +182,7 @@ export const loadStore = (): LoadResult => {
       resetState,
       taskOrder,
       hiddenTaskIds,
+      detailedCountTaskIds,
     },
   }
 }

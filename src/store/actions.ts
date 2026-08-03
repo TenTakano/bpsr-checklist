@@ -14,6 +14,7 @@ export type Action =
       toIndex: number
     }
   | { type: 'setTaskHidden'; taskId: string; hidden: boolean }
+  | { type: 'setTaskDetailedCount'; taskId: string; detailed: boolean }
 
 export const addCharacter = (name: string): Action => ({
   type: 'addCharacter',
@@ -67,4 +68,13 @@ export const setTaskHidden = (taskId: string, hidden: boolean): Action => ({
   type: 'setTaskHidden',
   taskId,
   hidden,
+})
+
+export const setTaskDetailedCount = (
+  taskId: string,
+  detailed: boolean,
+): Action => ({
+  type: 'setTaskDetailedCount',
+  taskId,
+  detailed,
 })

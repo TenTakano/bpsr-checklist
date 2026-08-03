@@ -267,5 +267,17 @@ export const reducer = (store: Store, action: Action): Store => {
         : currentHiddenTaskIds.filter((id) => id !== action.taskId)
       return { ...store, hiddenTaskIds }
     }
+
+    case 'setTaskDetailedCount': {
+      const currentDetailedCountTaskIds = store.detailedCountTaskIds ?? []
+      const isDetailed = currentDetailedCountTaskIds.includes(action.taskId)
+      if (action.detailed === isDetailed) {
+        return store
+      }
+      const detailedCountTaskIds = action.detailed
+        ? [...currentDetailedCountTaskIds, action.taskId]
+        : currentDetailedCountTaskIds.filter((id) => id !== action.taskId)
+      return { ...store, detailedCountTaskIds }
+    }
   }
 }
