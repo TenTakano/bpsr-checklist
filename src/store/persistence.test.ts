@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { storeWithCharacter } from '../test/fixtures'
 import {
   BACKUP_STORAGE_KEY,
+  IMPORT_BACKUP_STORAGE_KEY,
   RESET_BACKUP_STORAGE_KEY,
   STORAGE_KEY,
   backupCorruptedStore,
+  backupPreImportStore,
   backupResetSnapshot,
   diffRemovedProgress,
   loadStore,
@@ -630,6 +632,36 @@ describe('backupCorruptedStore', () => {
 
     expect(result.status).toBe('error')
     expect(localStorage.getItem(STORAGE_KEY)).toBe('{not valid json')
+    expect(setItemSpy).toHaveBeenCalled()
+  })
+})
+
+describe('backupPreImportStore', () => {
+  it('writes the pre-import raw value to the import backup key, separate from the corruption backup key', () => {
+    const result = backupPreImportStore('{"schemaVersion":1}')
+
+    expect(result.status).toBe('ok')
+    expect(localStorage.getItem(IMPORT_BACKUP_STORAGE_KEY)).toBe(
+      '{"schemaVersion":1}',
+    )
+    expect(localStorage.getItem(BACKUP_STORAGE_KEY)).toBeNull()
+  })
+
+  it('reports a failure without touching the primary key when the backup write fails', () => {
+    localStorage.setItem(STORAGE_KEY, '{"schemaVersion":1}')
+
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation((key) => {
+        if (key === IMPORT_BACKUP_STORAGE_KEY) {
+          throw new Error('QuotaExceededError')
+        }
+      })
+
+    const result = backupPreImportStore('{"schemaVersion":1}')
+
+    expect(result.status).toBe('error')
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('{"schemaVersion":1}')
     expect(setItemSpy).toHaveBeenCalled()
   })
 })

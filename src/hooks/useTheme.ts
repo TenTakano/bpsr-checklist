@@ -1,20 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-
-export const THEME_STORAGE_KEY = 'bpsr-checklist:theme'
-
-export type Theme = 'light' | 'dark'
-
-const isTheme = (value: string | null): value is Theme =>
-  value === 'light' || value === 'dark'
-
-const readStoredTheme = (): Theme | null => {
-  try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY)
-    return isTheme(stored) ? stored : null
-  } catch {
-    return null
-  }
-}
+import { readStoredTheme, THEME_STORAGE_KEY, type Theme } from '../store/theme'
 
 const readSystemTheme = (): Theme =>
   window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

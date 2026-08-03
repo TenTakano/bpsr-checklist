@@ -1,3 +1,4 @@
+import type { z } from 'zod'
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import {
   CharacterSchema,
@@ -14,6 +15,7 @@ import type { Store } from './types'
 export const STORAGE_KEY = 'bpsr-checklist:store'
 export const BACKUP_STORAGE_KEY = 'bpsr-checklist:store.backup'
 export const RESET_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.reset-backup'
+export const IMPORT_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.import-backup'
 
 export const createEmptyStore = (): Store => ({
   schemaVersion: 1,
@@ -38,6 +40,15 @@ const recoverFromCorruption = (raw: string): LoadResult => ({
 export const backupCorruptedStore = (raw: string): SaveResult => {
   try {
     localStorage.setItem(BACKUP_STORAGE_KEY, raw)
+    return { status: 'ok' }
+  } catch (error) {
+    return { status: 'error', error }
+  }
+}
+
+export const backupPreImportStore = (raw: string): SaveResult => {
+  try {
+    localStorage.setItem(IMPORT_BACKUP_STORAGE_KEY, raw)
     return { status: 'ok' }
   } catch (error) {
     return { status: 'error', error }
@@ -139,6 +150,31 @@ const rescueDetailedCountTaskIds = (
   return result.success ? result.data : undefined
 }
 
+export const normalizeStoreData = (
+  data: z.infer<typeof StoreSchema>,
+): Store => {
+  const characters = rescueCharacters(data.characters)
+  const progress = rescueProgress(data.progress, characters)
+  const resetState = rescueResetState(data.resetState)
+  const taskOrder = rescueTaskOrder(data.taskOrder)
+  const hiddenTaskIds = rescueHiddenTaskIds(data.hiddenTaskIds)
+  const detailedCountTaskIds = rescueDetailedCountTaskIds(
+    data.detailedCountTaskIds,
+  )
+
+  return {
+    ...extraTopLevelFields(data),
+    schemaVersion: data.schemaVersion,
+    taskDataVersion: data.taskDataVersion,
+    characters,
+    progress,
+    resetState,
+    taskOrder,
+    hiddenTaskIds,
+    detailedCountTaskIds,
+  }
+}
+
 export const loadStore = (): LoadResult => {
   let raw: string | null
   try {
@@ -162,29 +198,7 @@ export const loadStore = (): LoadResult => {
     return recoverFromCorruption(raw)
   }
 
-  const characters = rescueCharacters(topLevel.data.characters)
-  const progress = rescueProgress(topLevel.data.progress, characters)
-  const resetState = rescueResetState(topLevel.data.resetState)
-  const taskOrder = rescueTaskOrder(topLevel.data.taskOrder)
-  const hiddenTaskIds = rescueHiddenTaskIds(topLevel.data.hiddenTaskIds)
-  const detailedCountTaskIds = rescueDetailedCountTaskIds(
-    topLevel.data.detailedCountTaskIds,
-  )
-
-  return {
-    status: 'ok',
-    store: {
-      ...extraTopLevelFields(topLevel.data),
-      schemaVersion: topLevel.data.schemaVersion,
-      taskDataVersion: topLevel.data.taskDataVersion,
-      characters,
-      progress,
-      resetState,
-      taskOrder,
-      hiddenTaskIds,
-      detailedCountTaskIds,
-    },
-  }
+  return { status: 'ok', store: normalizeStoreData(topLevel.data) }
 }
 
 export const saveStore = (store: Store): SaveResult => {
