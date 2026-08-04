@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { SettingsModal } from './components/SettingsModal'
 import { StatusBanner } from './components/StatusBanner'
+import { SummaryPanel } from './components/SummaryPanel'
 import { MatrixView } from './components/MatrixView'
 import { StoreProvider } from './store/StoreProvider'
 
@@ -52,6 +53,7 @@ function App() {
         </header>
         <main className="app-layout">
           <StatusBanner />
+          <SummaryPanel />
           <MatrixView />
         </main>
         {isSettingsOpen && <SettingsModal onClose={closeSettings} />}
