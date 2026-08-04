@@ -5,6 +5,7 @@ import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
 import { resolveTaskOrder } from '../data/taskOrder'
 import type { Task } from '../data/taskSchema'
+import { isTaskComplete } from '../domain/taskProgress'
 import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
@@ -60,6 +61,7 @@ export function MatrixView() {
         tasks={DAILY_TASKS}
         taskOrder={store.taskOrder?.daily}
         hiddenTaskIds={store.hiddenTaskIds}
+        detailedCountTaskIds={store.detailedCountTaskIds}
         characters={characters}
         progress={store.progress}
         isReadOnly={isReadOnly}
@@ -71,6 +73,7 @@ export function MatrixView() {
         tasks={WEEKLY_TASKS}
         taskOrder={store.taskOrder?.weekly}
         hiddenTaskIds={store.hiddenTaskIds}
+        detailedCountTaskIds={store.detailedCountTaskIds}
         characters={characters}
         progress={store.progress}
         isReadOnly={isReadOnly}
@@ -86,6 +89,7 @@ interface MatrixSectionProps {
   tasks: Task[]
   taskOrder: string[] | undefined
   hiddenTaskIds: string[] | undefined
+  detailedCountTaskIds: string[] | undefined
   characters: Character[]
   progress: Store['progress']
   isReadOnly: boolean
@@ -98,6 +102,7 @@ function MatrixSection({
   tasks,
   taskOrder,
   hiddenTaskIds,
+  detailedCountTaskIds,
   characters,
   progress,
   isReadOnly,
@@ -114,6 +119,10 @@ function MatrixSection({
   const hiddenTaskIdSet = useMemo(
     () => new Set(hiddenTaskIds ?? []),
     [hiddenTaskIds],
+  )
+  const detailedCountTaskIdSet = useMemo(
+    () => new Set(detailedCountTaskIds ?? []),
+    [detailedCountTaskIds],
   )
   const hasVisibleTask = orderedTasks.some(
     (task) => !hiddenTaskIdSet.has(task.id),
@@ -266,6 +275,7 @@ function MatrixSection({
                       character={character}
                       task={task}
                       value={progressValue(progress, character.id, task.id)}
+                      isDetailedCount={detailedCountTaskIdSet.has(task.id)}
                       isReadOnly={isReadOnly}
                       dispatch={dispatch}
                     />
@@ -284,6 +294,7 @@ interface MatrixCellProps {
   character: Character
   task: Task
   value: number
+  isDetailedCount: boolean
   isReadOnly: boolean
   dispatch: Dispatch
 }
@@ -292,11 +303,12 @@ function MatrixCell({
   character,
   task,
   value,
+  isDetailedCount,
   isReadOnly,
   dispatch,
 }: MatrixCellProps) {
-  if (task.maxProgress === 1) {
-    const isDone = value > 0
+  if (task.maxProgress === 1 || !isDetailedCount) {
+    const isDone = isTaskComplete(value, task.maxProgress)
     return (
       <td className="matrix-cell">
         <button
@@ -309,7 +321,9 @@ function MatrixCell({
           aria-pressed={isDone}
           disabled={isReadOnly}
           onClick={() =>
-            dispatch(setProgress(character.id, task.id, isDone ? 0 : 1))
+            dispatch(
+              setProgress(character.id, task.id, isDone ? 0 : task.maxProgress),
+            )
           }
         />
       </td>
@@ -323,10 +337,26 @@ function MatrixCell({
 
   return (
     <td className="matrix-cell">
-      <div className="matrix-counter">
+      <div className="matrix-counter-cell">
         <button
           type="button"
-          className="matrix-counter-button"
+          className={classNames(
+            'matrix-counter-increment',
+            isOverMax
+              ? 'matrix-counter-increment--over'
+              : isComplete && 'matrix-counter-increment--complete',
+          )}
+          aria-label={`${character.name} ${getTaskLabel(task)} を増やす`}
+          disabled={!canIncrement}
+          onClick={() =>
+            dispatch(setProgress(character.id, task.id, value + 1))
+          }
+        >
+          {value}/{task.maxProgress}
+        </button>
+        <button
+          type="button"
+          className="matrix-counter-decrement"
           aria-label={`${character.name} ${getTaskLabel(task)} を減らす`}
           disabled={!canDecrement}
           onClick={() =>
@@ -334,27 +364,6 @@ function MatrixCell({
           }
         >
           −
-        </button>
-        <span
-          className={classNames(
-            'matrix-counter-value',
-            isOverMax
-              ? 'matrix-counter-value--over'
-              : isComplete && 'matrix-counter-value--complete',
-          )}
-        >
-          {value}/{task.maxProgress}
-        </span>
-        <button
-          type="button"
-          className="matrix-counter-button"
-          aria-label={`${character.name} ${getTaskLabel(task)} を増やす`}
-          disabled={!canIncrement}
-          onClick={() =>
-            dispatch(setProgress(character.id, task.id, value + 1))
-          }
-        >
-          ＋
         </button>
       </div>
     </td>
