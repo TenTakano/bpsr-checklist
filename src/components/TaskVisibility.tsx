@@ -1,5 +1,6 @@
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { getTaskLabel } from '../data/taskLabel'
+import type { TaskCategory } from '../data/taskLookup'
 import type { Task } from '../data/taskSchema'
 import { setTaskDetailedCount, setTaskHidden } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
@@ -20,6 +21,7 @@ export function TaskVisibility() {
       <h3 className="modal-section-title">タスク表示</h3>
       <TaskVisibilitySection
         title="デイリー"
+        category="daily"
         tasks={DAILY_TASKS}
         hiddenTaskIds={hiddenTaskIds}
         detailedCountTaskIds={detailedCountTaskIds}
@@ -28,6 +30,7 @@ export function TaskVisibility() {
       />
       <TaskVisibilitySection
         title="ウィークリー"
+        category="weekly"
         tasks={WEEKLY_TASKS}
         hiddenTaskIds={hiddenTaskIds}
         detailedCountTaskIds={detailedCountTaskIds}
@@ -40,6 +43,7 @@ export function TaskVisibility() {
 
 interface TaskVisibilitySectionProps {
   title: string
+  category: TaskCategory
   tasks: Task[]
   hiddenTaskIds: Set<string>
   detailedCountTaskIds: Set<string>
@@ -49,6 +53,7 @@ interface TaskVisibilitySectionProps {
 
 function TaskVisibilitySection({
   title,
+  category,
   tasks,
   hiddenTaskIds,
   detailedCountTaskIds,
@@ -57,7 +62,13 @@ function TaskVisibilitySection({
 }: TaskVisibilitySectionProps) {
   return (
     <div className="task-visibility-section">
-      <h4 className="modal-subsection-title">{title}</h4>
+      <h4
+        id={`task-visibility-section-${category}`}
+        className="modal-subsection-title"
+        tabIndex={-1}
+      >
+        {title}
+      </h4>
       <ul className="task-visibility-list">
         {tasks.map((task) => {
           const label = getTaskLabel(task)

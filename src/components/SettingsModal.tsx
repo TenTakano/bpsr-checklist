@@ -1,23 +1,37 @@
 import { useEffect, useRef, type MouseEvent } from 'react'
+import type { TaskCategory } from '../data/taskLookup'
 import { CharacterManager } from './CharacterManager'
 import { TaskVisibility } from './TaskVisibility'
 
 interface SettingsModalProps {
   onClose: () => void
+  initialFocusSection?: TaskCategory | null
 }
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
+export function SettingsModal({
+  onClose,
+  initialFocusSection = null,
+}: SettingsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (initialFocusSection !== null) {
+      const sectionHeading = dialogRef.current?.querySelector<HTMLElement>(
+        `#task-visibility-section-${initialFocusSection}`,
+      )
+      sectionHeading?.scrollIntoView()
+      sectionHeading?.focus()
+      return
+    }
+
     const nameInput = dialogRef.current?.querySelector<HTMLInputElement>(
       '#new-character-name',
     )
     nameInput?.focus()
-  }, [])
+  }, [initialFocusSection])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
