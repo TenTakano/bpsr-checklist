@@ -145,6 +145,8 @@ describe('App / セクションの表示タスク設定導線', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     render(<App />)
+    // A fresh session already ships with one default (NoName) character, so
+    // adding Alice here leaves two characters to delete below.
     await addCharacterAndCloseSettings(user)
 
     const gearButton = screen.getByRole('button', { name: '設定を開く' })
@@ -153,7 +155,11 @@ describe('App / セクションの表示タスク設定導線', () => {
     })[0]
     await user.click(dailySectionAction)
 
-    await user.click(screen.getByRole('button', { name: '削除' }))
+    let deleteButtons = screen.getAllByRole('button', { name: '削除' })
+    while (deleteButtons.length > 0) {
+      await user.click(deleteButtons[0])
+      deleteButtons = screen.queryAllByRole('button', { name: '削除' })
+    }
     expect(
       screen.queryAllByRole('button', { name: '表示タスク設定' }),
     ).toHaveLength(0)
