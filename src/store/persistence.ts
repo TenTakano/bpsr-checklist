@@ -24,6 +24,22 @@ export const createEmptyStore = (): Store => ({
   progress: {},
 })
 
+const DEFAULT_CHARACTER_NAME = 'NoName'
+
+// Generated the same way as the `addCharacter` reducer case (random id,
+// current timestamp), but built directly here so createEmptyStore() itself
+// stays untouched for the readonly code path (see StoreProvider.tsx).
+const createDefaultCharacter = (): Character => ({
+  id: crypto.randomUUID(),
+  name: DEFAULT_CHARACTER_NAME,
+  createdAt: new Date().toISOString(),
+})
+
+export const createInitialStore = (): Store => ({
+  ...createEmptyStore(),
+  characters: [createDefaultCharacter()],
+})
+
 export type LoadResult =
   | { status: 'ok'; store: Store }
   | { status: 'recovered'; store: Store; corruptedRaw: string }
@@ -33,7 +49,7 @@ export type SaveResult = { status: 'ok' } | { status: 'error'; error: unknown }
 
 const recoverFromCorruption = (raw: string): LoadResult => ({
   status: 'recovered',
-  store: createEmptyStore(),
+  store: createInitialStore(),
   corruptedRaw: raw,
 })
 
@@ -183,7 +199,7 @@ export const loadStore = (): LoadResult => {
     return { status: 'readonly' }
   }
   if (raw === null) {
-    return { status: 'ok', store: createEmptyStore() }
+    return { status: 'ok', store: createInitialStore() }
   }
 
   let parsed: unknown
