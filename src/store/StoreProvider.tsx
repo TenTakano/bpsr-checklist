@@ -31,7 +31,7 @@ interface InitialState {
 }
 
 export const RECOVERED_MESSAGE =
-  'データが壊れていたため、元のデータをバックアップに退避し、空の状態で起動しました。'
+  'データが壊れていたため、元のデータをバックアップに退避し、デフォルトキャラクター1件の状態で起動しました。'
 export const READONLY_MESSAGE =
   'データの保存領域に問題があるため、読み取り専用モードで起動しました。変更は保存されません。'
 export const SAVE_ERROR_MESSAGE =

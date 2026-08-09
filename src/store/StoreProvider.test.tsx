@@ -137,8 +137,11 @@ describe('StoreProvider / guardedDispatch', () => {
       </StoreProvider>,
     )
 
-    await userEvent.click(screen.getByRole('button', { name: 'add' }))
+    // Starts at 1 (the default NoName character injected for a fresh
+    // localStorage); adding Alice brings it to 2.
     expect(screen.getByTestId('count')).toHaveTextContent('1')
+    await userEvent.click(screen.getByRole('button', { name: 'add' }))
+    expect(screen.getByTestId('count')).toHaveTextContent('2')
   })
 })
 
