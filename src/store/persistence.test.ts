@@ -8,7 +8,6 @@ import {
   backupCorruptedStore,
   backupPreImportStore,
   backupResetSnapshot,
-  createEmptyStore,
   createInitialStore,
   diffRemovedProgress,
   loadStore,
@@ -19,11 +18,10 @@ const sampleStore = () =>
   storeWithCharacter({ progress: { 'char-1': { daily_a: 2 } } })
 
 describe('createInitialStore', () => {
-  it('returns a store with one default NoName character, leaving createEmptyStore at zero characters', () => {
+  it('returns a store with one default NoName character', () => {
     const initial = createInitialStore()
     expect(initial.characters).toHaveLength(1)
     expect(initial.characters[0].name).toBe('NoName')
-    expect(createEmptyStore().characters).toEqual([])
   })
 })
 

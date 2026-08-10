@@ -11,7 +11,7 @@ import { StoreContext, type StoreStatus } from './context'
 import {
   backupCorruptedStore,
   backupResetSnapshot,
-  createEmptyStore,
+  createInitialStore,
   diffRemovedProgress,
   loadStore,
   saveStore,
@@ -59,11 +59,11 @@ const resolveInitialState = (): InitialState => {
         corruptedRaw: result.corruptedRaw,
       }
     case 'readonly': {
-      const empty = createEmptyStore()
+      const initial = createInitialStore()
       return {
-        store: evaluateResetState(empty, now),
-        previousProgress: empty.progress,
-        previousResetState: empty.resetState,
+        store: evaluateResetState(initial, now),
+        previousProgress: initial.progress,
+        previousResetState: initial.resetState,
         status: 'readonly',
         message: READONLY_MESSAGE,
       }

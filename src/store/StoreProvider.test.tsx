@@ -127,7 +127,9 @@ describe('StoreProvider / guardedDispatch', () => {
     )
 
     await userEvent.click(screen.getByRole('button', { name: 'add' }))
-    expect(screen.getByTestId('count')).toHaveTextContent('0')
+    // Starts at 1 (the default NoName character injected for a fresh
+    // localStorage); stays at 1 because guardedDispatch is a no-op when readonly.
+    expect(screen.getByTestId('count')).toHaveTextContent('1')
   })
 
   it('applies the action and persists the store when not readonly', async () => {

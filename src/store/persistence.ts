@@ -17,18 +17,8 @@ export const BACKUP_STORAGE_KEY = 'bpsr-checklist:store.backup'
 export const RESET_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.reset-backup'
 export const IMPORT_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.import-backup'
 
-export const createEmptyStore = (): Store => ({
-  schemaVersion: 1,
-  taskDataVersion: upstreamTasksDocument.upstreamCommit,
-  characters: [],
-  progress: {},
-})
-
 const DEFAULT_CHARACTER_NAME = 'NoName'
 
-// Generated the same way as the `addCharacter` reducer case (random id,
-// current timestamp), but built directly here so createEmptyStore() itself
-// stays untouched for the readonly code path (see StoreProvider.tsx).
 const createDefaultCharacter = (): Character => ({
   id: crypto.randomUUID(),
   name: DEFAULT_CHARACTER_NAME,
@@ -36,8 +26,10 @@ const createDefaultCharacter = (): Character => ({
 })
 
 export const createInitialStore = (): Store => ({
-  ...createEmptyStore(),
+  schemaVersion: 1,
+  taskDataVersion: upstreamTasksDocument.upstreamCommit,
   characters: [createDefaultCharacter()],
+  progress: {},
 })
 
 export type LoadResult =
