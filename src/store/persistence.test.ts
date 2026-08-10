@@ -8,6 +8,7 @@ import {
   backupCorruptedStore,
   backupPreImportStore,
   backupResetSnapshot,
+  createInitialStore,
   diffRemovedProgress,
   loadStore,
   saveStore,
@@ -16,12 +17,21 @@ import {
 const sampleStore = () =>
   storeWithCharacter({ progress: { 'char-1': { daily_a: 2 } } })
 
+describe('createInitialStore', () => {
+  it('returns a store with one default NoName character', () => {
+    const initial = createInitialStore()
+    expect(initial.characters).toHaveLength(1)
+    expect(initial.characters[0].name).toBe('NoName')
+  })
+})
+
 describe('loadStore', () => {
-  it('returns an empty store when nothing is stored', () => {
+  it('returns a store with one default NoName character when nothing is stored', () => {
     const result = loadStore()
     expect(result.status).toBe('ok')
     if (result.status === 'ok') {
-      expect(result.store.characters).toEqual([])
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.characters[0].name).toBe('NoName')
       expect(result.store.progress).toEqual({})
     }
   })
@@ -47,7 +57,8 @@ describe('loadStore', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe('{not valid json')
     if (result.status === 'recovered') {
       expect(result.corruptedRaw).toBe('{not valid json')
-      expect(result.store.characters).toEqual([])
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.characters[0].name).toBe('NoName')
     }
   })
 
@@ -61,6 +72,8 @@ describe('loadStore', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe(raw)
     if (result.status === 'recovered') {
       expect(result.corruptedRaw).toBe(raw)
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.characters[0].name).toBe('NoName')
     }
   })
 

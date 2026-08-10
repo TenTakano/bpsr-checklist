@@ -17,10 +17,18 @@ export const BACKUP_STORAGE_KEY = 'bpsr-checklist:store.backup'
 export const RESET_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.reset-backup'
 export const IMPORT_BACKUP_STORAGE_KEY = 'bpsr-checklist:store.import-backup'
 
-export const createEmptyStore = (): Store => ({
+const DEFAULT_CHARACTER_NAME = 'NoName'
+
+const createDefaultCharacter = (): Character => ({
+  id: crypto.randomUUID(),
+  name: DEFAULT_CHARACTER_NAME,
+  createdAt: new Date().toISOString(),
+})
+
+export const createInitialStore = (): Store => ({
   schemaVersion: 1,
   taskDataVersion: upstreamTasksDocument.upstreamCommit,
-  characters: [],
+  characters: [createDefaultCharacter()],
   progress: {},
 })
 
@@ -33,7 +41,7 @@ export type SaveResult = { status: 'ok' } | { status: 'error'; error: unknown }
 
 const recoverFromCorruption = (raw: string): LoadResult => ({
   status: 'recovered',
-  store: createEmptyStore(),
+  store: createInitialStore(),
   corruptedRaw: raw,
 })
 
@@ -183,7 +191,7 @@ export const loadStore = (): LoadResult => {
     return { status: 'readonly' }
   }
   if (raw === null) {
-    return { status: 'ok', store: createEmptyStore() }
+    return { status: 'ok', store: createInitialStore() }
   }
 
   let parsed: unknown
