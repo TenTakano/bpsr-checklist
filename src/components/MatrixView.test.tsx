@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
@@ -69,6 +75,13 @@ const fakeDataTransfer = () => {
     },
     getData: (format: string) => data[format] ?? '',
   }
+}
+
+// Rows where every displayed character has completed the task move into the
+// collapsed "完了済み" accordion group, so tests that expect such a row's
+// cells to already be in the DOM must open the group first.
+const openCompletedGroup = async () => {
+  await userEvent.click(screen.getByRole('button', { name: /^完了済み/ }))
 }
 
 // The task-label `th` doesn't expose the row directly, so tests that need
@@ -144,6 +157,7 @@ describe('MatrixView / toggle cells (maxProgress = 1)', () => {
         progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
       }),
     })
+    await openCompletedGroup()
     const button = screen.getByRole('button', {
       name: `${CHARACTER_NAME} ${getTaskLabel(upstreamTasksDocument.daily[0])}`,
     })
@@ -175,6 +189,7 @@ describe('MatrixView / checkbox cells (maxProgress > 1, default)', () => {
         progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: COUNTER_TASK_MAX } },
       }),
     })
+    await openCompletedGroup()
     const checkbox = screen.getByRole('button', {
       name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL}`,
     })
@@ -186,7 +201,7 @@ describe('MatrixView / checkbox cells (maxProgress > 1, default)', () => {
     )
   })
 
-  it('shows a checked cell when the stored value exceeds maxProgress', () => {
+  it('shows a checked cell when the stored value exceeds maxProgress', async () => {
     renderWithContext({
       store: storeWithCharacter({
         progress: {
@@ -194,6 +209,7 @@ describe('MatrixView / checkbox cells (maxProgress > 1, default)', () => {
         },
       }),
     })
+    await openCompletedGroup()
     const checkbox = screen.getByRole('button', {
       name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL}`,
     })
@@ -222,13 +238,14 @@ describe('MatrixView / detailed counter cells (maxProgress > 1, detailedCountTas
     )
   })
 
-  it('disables the increment button and marks the value complete once it reaches maxProgress', () => {
+  it('disables the increment button and marks the value complete once it reaches maxProgress', async () => {
     renderWithContext({
       store: storeWithCharacter({
         detailedCountTaskIds: [COUNTER_TASK_ID],
         progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: COUNTER_TASK_MAX } },
       }),
     })
+    await openCompletedGroup()
     const increment = screen.getByRole('button', {
       name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を増やす`,
     })
@@ -243,7 +260,7 @@ describe('MatrixView / detailed counter cells (maxProgress > 1, detailedCountTas
     expect(increment).toHaveClass('matrix-counter-increment--complete')
   })
 
-  it('shows an over-max indicator and keeps increment disabled when upstream shrank below the stored value', () => {
+  it('shows an over-max indicator and keeps increment disabled when upstream shrank below the stored value', async () => {
     const overValue = COUNTER_TASK_MAX + 1
     renderWithContext({
       store: storeWithCharacter({
@@ -251,6 +268,7 @@ describe('MatrixView / detailed counter cells (maxProgress > 1, detailedCountTas
         progress: { [CHARACTER_ID]: { [COUNTER_TASK_ID]: overValue } },
       }),
     })
+    await openCompletedGroup()
     const increment = screen.getByRole('button', {
       name: `${CHARACTER_NAME} ${COUNTER_TASK_LABEL} を増やす`,
     })
@@ -431,6 +449,103 @@ describe('MatrixView / hidden tasks', () => {
   })
 })
 
+describe('MatrixView / completed task accordion', () => {
+  it('does not render the accordion toggle when no visible task is complete for every displayed character', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    expect(
+      screen.queryByRole('button', { name: /^完了済み/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('moves a fully-completed row into the accordion, opens it without side effects, and collapses again on a fresh render', async () => {
+    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const store = storeWithCharacter({
+      progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
+    })
+    const { dispatch } = renderWithContext({ store })
+    expect(screen.queryByTitle(label)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '完了済み（1）' }),
+    ).toBeInTheDocument()
+
+    await openCompletedGroup()
+
+    expect(screen.getByTitle(label)).toBeInTheDocument()
+    expect(
+      within(getRowByLabel(label)).queryByRole('button', {
+        name: `${label} をドラッグして並べ替え`,
+      }),
+    ).not.toBeInTheDocument()
+    expect(dispatch).not.toHaveBeenCalled()
+
+    cleanup()
+    renderWithContext({ store })
+
+    expect(screen.queryByTitle(label)).not.toBeInTheDocument()
+  })
+
+  it('keeps a row in the normal list when only some, not all, displayed characters have completed it', () => {
+    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    renderWithContext({
+      store: storeWithCharacter({
+        characters: [DEFAULT_CHARACTER, secondCharacter],
+        progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
+      }),
+    })
+    expect(screen.getByTitle(label)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /^完了済み/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps drag-and-drop index math anchored to the full task order once a row has moved into the accordion', () => {
+    const dailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({
+        progress: { [CHARACTER_ID]: { [dailyIds[0]]: 1 } },
+      }),
+    })
+    const source = getDragHandle(getTaskLabel(upstreamTasksDocument.daily[2]))
+    const target = screen.getByTitle(
+      getTaskLabel(upstreamTasksDocument.daily[1]),
+    )
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[2], 1))
+  })
+
+  it('renders an empty normal-list table body without an extra empty-state message when every visible task is complete', () => {
+    const allDailyProgress = Object.fromEntries(
+      upstreamTasksDocument.daily.map((task) => [task.id, task.maxProgress]),
+    )
+    renderWithContext({
+      store: storeWithCharacter({
+        progress: { [CHARACTER_ID]: allDailyProgress },
+      }),
+    })
+    const dailySection = screen
+      .getByRole('heading', { name: 'デイリー' })
+      .closest('.matrix-section')
+    if (dailySection === null) {
+      throw new Error('daily section not found')
+    }
+    expect(
+      within(dailySection as HTMLElement).queryByText(NO_VISIBLE_TASKS_MESSAGE),
+    ).not.toBeInTheDocument()
+    expect(
+      within(dailySection as HTMLElement).queryAllByRole('rowheader'),
+    ).toHaveLength(0)
+    expect(
+      within(dailySection as HTMLElement).getByRole('button', {
+        name: `完了済み（${upstreamTasksDocument.daily.length}）`,
+      }),
+    ).toBeInTheDocument()
+  })
+})
+
 const getSectionHeader = (title: string) => {
   const heading = screen.getByRole('heading', { name: title })
   const header = heading.closest('.matrix-section-header')
@@ -553,5 +668,17 @@ describe('MatrixView / readonly mode', () => {
       expect(handle).toBeDisabled()
       expect(handle).toHaveAttribute('draggable', 'false')
     }
+  })
+
+  it('keeps the completed-task accordion toggle enabled', () => {
+    // Like 表示タスク設定, this only reveals already-persisted rows and
+    // performs no edit, so it stays interactive in readonly mode.
+    renderWithContext({
+      store: storeWithCharacter({
+        progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
+      }),
+      status: 'readonly',
+    })
+    expect(screen.getByRole('button', { name: '完了済み（1）' })).toBeEnabled()
   })
 })

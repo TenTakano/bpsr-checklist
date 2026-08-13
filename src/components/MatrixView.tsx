@@ -132,6 +132,31 @@ function MatrixSection({
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+  const [isCompletedGroupOpen, setIsCompletedGroupOpen] = useState(false)
+
+  // A row is complete only once every currently displayed character has
+  // completed it; this deliberately ignores any notion of an "active"
+  // character.
+  const isRowComplete = (task: Task) =>
+    characters.every((character) =>
+      isTaskComplete(
+        readProgressValue(progress, character.id, task.id),
+        task.maxProgress,
+      ),
+    )
+
+  // Index reflects the position within the full taskOrder (orderedTasks),
+  // matching the hidden-task handling below: filtering here is for display
+  // only, drag-and-drop index math stays anchored to the unfiltered order.
+  const visibleTaskEntries = orderedTasks
+    .map((task, index) => ({ task, index }))
+    .filter(({ task }) => !hiddenTaskIdSet.has(task.id))
+  const normalTaskEntries = visibleTaskEntries.filter(
+    ({ task }) => !isRowComplete(task),
+  )
+  const completedTaskEntries = visibleTaskEntries.filter(({ task }) =>
+    isRowComplete(task),
+  )
 
   const handleMove = (taskId: string, toIndex: number) => {
     dispatch(moveTask(section, taskId, toIndex))
@@ -176,6 +201,77 @@ function MatrixSection({
     setDraggedTaskId(null)
     setDraggedIndex(null)
     setDragOverTaskId(null)
+  }
+
+  const renderTaskRow = (
+    task: Task,
+    index: number,
+    isCompletedRow: boolean,
+  ) => {
+    const label = getTaskLabel(task)
+    const { primary, note } = splitTaskLabel(label)
+    const isDragging = !isCompletedRow && draggedTaskId === task.id
+    const isDragOver = !isCompletedRow && dragOverTaskId === task.id
+    const dragOverDirection: DragOverDirection =
+      isDragOver && draggedIndex !== null
+        ? draggedIndex < index
+          ? 'below'
+          : 'above'
+        : null
+
+    return (
+      <tr
+        key={task.id}
+        className={classNames(
+          'matrix-row',
+          isCompletedRow && 'matrix-row--completed',
+          isDragging && 'matrix-row--dragging',
+          dragOverDirection === 'above' && 'matrix-row--drag-over-above',
+          dragOverDirection === 'below' && 'matrix-row--drag-over-below',
+        )}
+        onDragOver={isCompletedRow ? undefined : handleDragOver(task.id)}
+        onDragLeave={isCompletedRow ? undefined : handleDragLeave(task.id)}
+        onDrop={isCompletedRow ? undefined : handleDrop(task.id, index)}
+      >
+        <td className="matrix-handle-cell">
+          {!isCompletedRow && (
+            <button
+              type="button"
+              className="matrix-handle"
+              aria-label={`${label} をドラッグして並べ替え`}
+              draggable={!isReadOnly}
+              disabled={isReadOnly}
+              onDragStart={handleDragStart(task.id, index)}
+              onDragEnd={handleDragEnd}
+            >
+              <span aria-hidden="true">⠿</span>
+            </button>
+          )}
+        </td>
+        <th
+          scope="row"
+          className="matrix-task-label"
+          style={{ borderLeftColor: resolveTaskColor(task.color) }}
+          title={label}
+        >
+          <span className="matrix-task-label-text">{primary}</span>
+          {note !== null && (
+            <span className="matrix-task-label-note">{note}</span>
+          )}
+        </th>
+        {characters.map((character) => (
+          <MatrixCell
+            key={character.id}
+            character={character}
+            task={task}
+            value={readProgressValue(progress, character.id, task.id)}
+            isDetailedCount={detailedCountTaskIdSet.has(task.id)}
+            isReadOnly={isReadOnly}
+            dispatch={dispatch}
+          />
+        ))}
+      </tr>
+    )
   }
 
   if (!hasVisibleTask) {
@@ -223,75 +319,38 @@ function MatrixSection({
             </tr>
           </thead>
           <tbody>
-            {orderedTasks.map((task, index) => {
-              if (hiddenTaskIdSet.has(task.id)) {
-                return null
-              }
-              const label = getTaskLabel(task)
-              const { primary, note } = splitTaskLabel(label)
-              const isDragging = draggedTaskId === task.id
-              const isDragOver = dragOverTaskId === task.id
-              const dragOverDirection: DragOverDirection =
-                isDragOver && draggedIndex !== null
-                  ? draggedIndex < index
-                    ? 'below'
-                    : 'above'
-                  : null
-
-              return (
-                <tr
-                  key={task.id}
-                  className={classNames(
-                    'matrix-row',
-                    isDragging && 'matrix-row--dragging',
-                    dragOverDirection === 'above' &&
-                      'matrix-row--drag-over-above',
-                    dragOverDirection === 'below' &&
-                      'matrix-row--drag-over-below',
-                  )}
-                  onDragOver={handleDragOver(task.id)}
-                  onDragLeave={handleDragLeave(task.id)}
-                  onDrop={handleDrop(task.id, index)}
-                >
-                  <td className="matrix-handle-cell">
-                    <button
-                      type="button"
-                      className="matrix-handle"
-                      aria-label={`${label} をドラッグして並べ替え`}
-                      draggable={!isReadOnly}
-                      disabled={isReadOnly}
-                      onDragStart={handleDragStart(task.id, index)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <span aria-hidden="true">⠿</span>
-                    </button>
-                  </td>
-                  <th
-                    scope="row"
-                    className="matrix-task-label"
-                    style={{ borderLeftColor: resolveTaskColor(task.color) }}
-                    title={label}
-                  >
-                    <span className="matrix-task-label-text">{primary}</span>
-                    {note !== null && (
-                      <span className="matrix-task-label-note">{note}</span>
-                    )}
-                  </th>
-                  {characters.map((character) => (
-                    <MatrixCell
-                      key={character.id}
-                      character={character}
-                      task={task}
-                      value={readProgressValue(progress, character.id, task.id)}
-                      isDetailedCount={detailedCountTaskIdSet.has(task.id)}
-                      isReadOnly={isReadOnly}
-                      dispatch={dispatch}
-                    />
-                  ))}
-                </tr>
-              )
-            })}
+            {normalTaskEntries.map(({ task, index }) =>
+              renderTaskRow(task, index, false),
+            )}
           </tbody>
+          {completedTaskEntries.length > 0 && (
+            <tbody>
+              <tr className="matrix-accordion-toggle-row">
+                <td
+                  className="matrix-accordion-toggle-cell"
+                  colSpan={characters.length + 2}
+                >
+                  <button
+                    type="button"
+                    className="matrix-accordion-toggle"
+                    aria-expanded={isCompletedGroupOpen}
+                    onClick={() =>
+                      setIsCompletedGroupOpen((current) => !current)
+                    }
+                  >
+                    <span aria-hidden="true">
+                      {isCompletedGroupOpen ? '▼' : '▶'}
+                    </span>
+                    完了済み（{completedTaskEntries.length}）
+                  </button>
+                </td>
+              </tr>
+              {isCompletedGroupOpen &&
+                completedTaskEntries.map(({ task, index }) =>
+                  renderTaskRow(task, index, true),
+                )}
+            </tbody>
+          )}
         </table>
       </div>
     </div>
