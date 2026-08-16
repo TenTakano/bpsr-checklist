@@ -20,28 +20,20 @@ pnpm extract -- /path/to/script.js --upstream-commit <sha>
 
 表示用の日本語ラベルは `src/data/labels.ja.json` でローカル管理しています。
 
-### upstream 追従時の日本語ラベル更新
+### upstream 追従時の更新手順
 
 upstream のタスクが追加・削除された際の手順:
 
 1. `pnpm extract` で `src/data/upstreamTasks.json` を再生成
 2. `src/data/labels.ja.json` も追従して更新
+3. `src/data/projectTasks.ts` のマッピングも追従して更新（追加された upstream id にはエントリを追加し、削除された upstream id を参照しているエントリは除去する。既定では恒等マッピング `{ id: <本家 id>, upstreamIds: [<本家 id>] }` を追加する）
 
 注意点:
 
 - タスク id の追加・削除を怠ると `src/data/taskLabel.test.ts` のテストが失敗します
 - id が変わらずラベル文言のみが変更された場合、このテストでは検出されません
-
-## レイヤー構造
-
-タスク定義は 2 層に分かれています。
-
-- ミラーリングレイヤー（`src/data/upstreamTasks.json`）: upstream の `script.js` を `pnpm extract` でそのまま抽出した無加工の成果物です。id・粒度とも upstream に追従します。
-- プロジェクトレイヤー（`src/data/projectTasks.ts`）: ミラーリングレイヤーの id（`upstreamIds`）をプロジェクト id へ再マッピングする層です。本家の分割粒度がゲームの実態と合わない場合、ここで複数の upstream タスクを 1 件に統合したり、逆に分割したりできます。アプリの他のレイヤー（進捗・taskOrder・hiddenTaskIds など）は upstream id ではなくプロジェクト id を参照します。
-
-両者は `src/data/projectTasksResolver.ts` がマージし、アプリが実際に使う `Task[]`（`DAILY_TASKS` / `WEEKLY_TASKS`）を組み立てます。
-
-upstream 追従で `src/data/upstreamTasks.json` に新規タスクが増えた場合、`src/data/projectTasks.ts` にも対応するエントリ（既定では恒等マッピング `{ id: <本家 id>, upstreamIds: [<本家 id>] }`）を追加してください。追加を怠ると、`src/data/projectTasksResolver.ts` のモジュール初期化時に未マッピングの upstream id を検出して例外を投げるため、`pnpm test` が失敗します。削除された場合は同様に `resolveProjectTasks` が存在しない `upstreamIds` を検出して例外を投げます。
+- `projectTasks.ts` へのエントリ追加漏れ・除去漏れがあると、`src/data/projectTasksResolver.ts` のモジュール初期化時に未マッピングの upstream id や存在しない `upstreamIds` を検出して例外を投げるため、`pnpm test` が失敗します
+- タスク定義がミラーリングレイヤーとプロジェクトレイヤーに分かれている設計の詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください
 
 ## 開発
 
