@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import {
   addCharacter,
@@ -14,9 +14,9 @@ import {
 } from './actions'
 import { evaluateResetState, reducer } from './reducer'
 
-const DAILY_TASK_ID = upstreamTasksDocument.daily[0].id
-const WEEKLY_TASK_ID = upstreamTasksDocument.weekly[0].id
-const DAILY_TASK_IDS = upstreamTasksDocument.daily.map((task) => task.id)
+const DAILY_TASK_ID = DAILY_TASKS[0].id
+const WEEKLY_TASK_ID = WEEKLY_TASKS[0].id
+const DAILY_TASK_IDS = DAILY_TASKS.map((task) => task.id)
 
 describe('reducer / addCharacter', () => {
   it('appends a character with a trimmed name', () => {
@@ -172,7 +172,7 @@ describe('reducer / moveTask', () => {
     const store = emptyStore()
     const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[0], 1))
     expect(result.taskOrder?.weekly).toEqual(
-      upstreamTasksDocument.weekly.map((task) => task.id),
+      WEEKLY_TASKS.map((task) => task.id),
     )
   })
 
@@ -181,7 +181,7 @@ describe('reducer / moveTask', () => {
     const store = storeWithCharacter({
       taskOrder: {
         daily: reordered,
-        weekly: upstreamTasksDocument.weekly.map((task) => task.id),
+        weekly: WEEKLY_TASKS.map((task) => task.id),
       },
     })
     const result = reducer(store, moveTask('daily', reordered[0], 3))
@@ -202,7 +202,7 @@ describe('reducer / moveTask', () => {
     const store = storeWithCharacter({
       taskOrder: {
         daily: [DAILY_TASK_IDS[1]],
-        weekly: upstreamTasksDocument.weekly.map((task) => task.id),
+        weekly: WEEKLY_TASKS.map((task) => task.id),
       },
     })
     const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[1], 1))
@@ -221,7 +221,7 @@ describe('reducer / moveTask', () => {
     const store = storeWithCharacter({
       taskOrder: {
         daily: ['ghost_task', ...DAILY_TASK_IDS],
-        weekly: upstreamTasksDocument.weekly.map((task) => task.id),
+        weekly: WEEKLY_TASKS.map((task) => task.id),
       },
     })
     // DAILY_TASK_IDS[0] resolves to index 0 once ghost_task is filtered out,

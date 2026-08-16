@@ -32,6 +32,17 @@ upstream のタスクが追加・削除された際の手順:
 - タスク id の追加・削除を怠ると `src/data/taskLabel.test.ts` のテストが失敗します
 - id が変わらずラベル文言のみが変更された場合、このテストでは検出されません
 
+## レイヤー構造
+
+タスク定義は 2 層に分かれています。
+
+- ミラーリングレイヤー（`src/data/upstreamTasks.json`）: upstream の `script.js` を `pnpm extract` でそのまま抽出した無加工の成果物です。id・粒度とも upstream に追従します。
+- プロジェクトレイヤー（`src/data/projectTasks.ts`）: ミラーリングレイヤーの id（`upstreamIds`）をプロジェクト id へ再マッピングする層です。本家の分割粒度がゲームの実態と合わない場合、ここで複数の upstream タスクを 1 件に統合したり、逆に分割したりできます。アプリの他のレイヤー（進捗・taskOrder・hiddenTaskIds など）は upstream id ではなくプロジェクト id を参照します。
+
+両者は `src/data/projectTasksResolver.ts` がマージし、アプリが実際に使う `Task[]`（`DAILY_TASKS` / `WEEKLY_TASKS`）を組み立てます。
+
+upstream 追従で `src/data/upstreamTasks.json` に新規タスクが増えた場合、`src/data/projectTasks.ts` にも対応するエントリ（既定では恒等マッピング `{ id: <本家 id>, upstreamIds: [<本家 id>] }`）を追加してください。追加を怠ると、`src/data/projectTasksResolver.ts` のモジュール初期化時に未マッピングの upstream id を検出して例外を投げるため、`pnpm test` が失敗します。削除された場合は同様に `resolveProjectTasks` が存在しない `upstreamIds` を検出して例外を投げます。
+
 ## 開発
 
 Node.js は `^22.13.0 || >=24` が必要です。パッケージマネージャは pnpm を使用します。

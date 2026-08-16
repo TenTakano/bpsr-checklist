@@ -1,27 +1,23 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
+import { DAILY_TASKS } from '../data/projectTasksResolver'
 import { getTaskLabel } from '../data/taskLabel'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import { setTaskDetailedCount, setTaskHidden } from '../store/actions'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import { TaskVisibility } from './TaskVisibility'
 
-const DAILY_TASK_ID = upstreamTasksDocument.daily[0].id
-const DAILY_TASK_LABEL = getTaskLabel(upstreamTasksDocument.daily[0])
-if (upstreamTasksDocument.daily[0].maxProgress !== 1) {
-  throw new Error(
-    'upstreamTasksDocument.daily[0] must have maxProgress 1 for these tests',
-  )
+const DAILY_TASK_ID = DAILY_TASKS[0].id
+const DAILY_TASK_LABEL = getTaskLabel(DAILY_TASKS[0])
+if (DAILY_TASKS[0].maxProgress !== 1) {
+  throw new Error('DAILY_TASKS[0] must have maxProgress 1 for these tests')
 }
 
-const COUNTER_TASK_ID = upstreamTasksDocument.daily[2].id
-const COUNTER_TASK_LABEL = getTaskLabel(upstreamTasksDocument.daily[2])
-if (upstreamTasksDocument.daily[2].maxProgress <= 1) {
-  throw new Error(
-    'upstreamTasksDocument.daily[2] must have maxProgress > 1 for these tests',
-  )
+const COUNTER_TASK_ID = DAILY_TASKS[2].id
+const COUNTER_TASK_LABEL = getTaskLabel(DAILY_TASKS[2])
+if (DAILY_TASKS[2].maxProgress <= 1) {
+  throw new Error('DAILY_TASKS[2] must have maxProgress > 1 for these tests')
 }
 const DETAILED_COUNT_CHECKBOX_NAME = `${COUNTER_TASK_LABEL} を詳細カウント表示にする`
 

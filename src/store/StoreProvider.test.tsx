@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
+import { DAILY_TASKS } from '../data/projectTasksResolver'
 import { addCharacter } from './actions'
 import { useStore } from './context'
 import {
@@ -17,7 +17,7 @@ import {
   StoreProvider,
 } from './StoreProvider'
 
-const DAILY_TASK_ID = upstreamTasksDocument.daily[0].id
+const DAILY_TASK_ID = DAILY_TASKS[0].id
 
 function Probe() {
   const { store, status, message, dispatch } = useStore()

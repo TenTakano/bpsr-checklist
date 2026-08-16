@@ -7,7 +7,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import {
   DEFAULT_CHARACTER,
@@ -20,20 +20,16 @@ import type { Character } from '../store/schema'
 import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
 import { MatrixView } from './MatrixView'
 
-const TOGGLE_TASK_ID = upstreamTasksDocument.daily[0].id
-if (upstreamTasksDocument.daily[0].maxProgress !== 1) {
-  throw new Error(
-    'upstreamTasksDocument.daily[0] must have maxProgress 1 for these tests',
-  )
+const TOGGLE_TASK_ID = DAILY_TASKS[0].id
+if (DAILY_TASKS[0].maxProgress !== 1) {
+  throw new Error('DAILY_TASKS[0] must have maxProgress 1 for these tests')
 }
 
-const COUNTER_TASK_ID = upstreamTasksDocument.daily[2].id
-const COUNTER_TASK_LABEL = getTaskLabel(upstreamTasksDocument.daily[2])
-const COUNTER_TASK_MAX = upstreamTasksDocument.daily[2].maxProgress
+const COUNTER_TASK_ID = DAILY_TASKS[2].id
+const COUNTER_TASK_LABEL = getTaskLabel(DAILY_TASKS[2])
+const COUNTER_TASK_MAX = DAILY_TASKS[2].maxProgress
 if (COUNTER_TASK_MAX <= 1) {
-  throw new Error(
-    'upstreamTasksDocument.daily[2] must have maxProgress > 1 for these tests',
-  )
+  throw new Error('DAILY_TASKS[2] must have maxProgress > 1 for these tests')
 }
 
 const CHARACTER_NAME = DEFAULT_CHARACTER.name
@@ -115,8 +111,7 @@ describe('MatrixView / empty state', () => {
 describe('MatrixView / rendering scale', () => {
   it('renders one row per daily/weekly task (36 total) across both sections', () => {
     renderWithContext({ store: storeWithCharacter() })
-    const totalTaskCount =
-      upstreamTasksDocument.daily.length + upstreamTasksDocument.weekly.length
+    const totalTaskCount = DAILY_TASKS.length + WEEKLY_TASKS.length
     expect(screen.getAllByRole('rowheader')).toHaveLength(totalTaskCount)
   })
 
@@ -127,12 +122,12 @@ describe('MatrixView / rendering scale', () => {
     renderWithContext({ store })
     expect(
       screen.getByRole('button', {
-        name: `${CHARACTER_NAME} ${getTaskLabel(upstreamTasksDocument.daily[0])}`,
+        name: `${CHARACTER_NAME} ${getTaskLabel(DAILY_TASKS[0])}`,
       }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('button', {
-        name: `${secondCharacter.name} ${getTaskLabel(upstreamTasksDocument.daily[0])}`,
+        name: `${secondCharacter.name} ${getTaskLabel(DAILY_TASKS[0])}`,
       }),
     ).toBeInTheDocument()
   })
@@ -142,7 +137,7 @@ describe('MatrixView / toggle cells (maxProgress = 1)', () => {
   it('dispatches setProgress with 1 when an unset toggle cell is clicked', async () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
     const button = screen.getByRole('button', {
-      name: `${CHARACTER_NAME} ${getTaskLabel(upstreamTasksDocument.daily[0])}`,
+      name: `${CHARACTER_NAME} ${getTaskLabel(DAILY_TASKS[0])}`,
     })
     expect(button).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(button)
@@ -159,7 +154,7 @@ describe('MatrixView / toggle cells (maxProgress = 1)', () => {
     })
     await openCompletedGroup()
     const button = screen.getByRole('button', {
-      name: `${CHARACTER_NAME} ${getTaskLabel(upstreamTasksDocument.daily[0])}`,
+      name: `${CHARACTER_NAME} ${getTaskLabel(DAILY_TASKS[0])}`,
     })
     expect(button).toHaveAttribute('aria-pressed', 'true')
     expect(button).toHaveClass('matrix-toggle--done')
@@ -285,10 +280,8 @@ describe('MatrixView / detailed counter cells (maxProgress > 1, detailedCountTas
 describe('MatrixView / drag and drop reordering', () => {
   it('dispatches moveTask with the drop target index when a row is dragged within the same section', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const source = getDragHandle(getTaskLabel(upstreamTasksDocument.daily[0]))
-    const target = screen.getByTitle(
-      getTaskLabel(upstreamTasksDocument.daily[2]),
-    )
+    const source = getDragHandle(getTaskLabel(DAILY_TASKS[0]))
+    const target = screen.getByTitle(getTaskLabel(DAILY_TASKS[2]))
     const dataTransfer = fakeDataTransfer()
 
     fireEvent.dragStart(source, { dataTransfer })
@@ -300,12 +293,8 @@ describe('MatrixView / drag and drop reordering', () => {
 
   it('ignores a drop when the dragged row belongs to a different section', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const dailySource = getDragHandle(
-      getTaskLabel(upstreamTasksDocument.daily[0]),
-    )
-    const weeklyTarget = screen.getByTitle(
-      getTaskLabel(upstreamTasksDocument.weekly[0]),
-    )
+    const dailySource = getDragHandle(getTaskLabel(DAILY_TASKS[0]))
+    const weeklyTarget = screen.getByTitle(getTaskLabel(WEEKLY_TASKS[0]))
     const dataTransfer = fakeDataTransfer()
 
     fireEvent.dragStart(dailySource, { dataTransfer })
@@ -316,7 +305,7 @@ describe('MatrixView / drag and drop reordering', () => {
 
   it('does not dispatch when dropping a row onto itself', () => {
     const { dispatch } = renderWithContext({ store: storeWithCharacter() })
-    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const label = getTaskLabel(DAILY_TASKS[0])
     const source = getDragHandle(label)
     const target = screen.getByTitle(label)
     const dataTransfer = fakeDataTransfer()
@@ -329,7 +318,7 @@ describe('MatrixView / drag and drop reordering', () => {
 
   it('adds matrix-row--dragging to the row being dragged', () => {
     renderWithContext({ store: storeWithCharacter() })
-    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const label = getTaskLabel(DAILY_TASKS[0])
     const source = getDragHandle(label)
     const row = getRowByLabel(label)
     const dataTransfer = fakeDataTransfer()
@@ -360,8 +349,8 @@ describe('MatrixView / drag insertion indicator direction', () => {
     '$name',
     ({ sourceIndex, targetIndex, expectedClass, unexpectedClass }) => {
       renderWithContext({ store: storeWithCharacter() })
-      const sourceLabel = getTaskLabel(upstreamTasksDocument.daily[sourceIndex])
-      const targetLabel = getTaskLabel(upstreamTasksDocument.daily[targetIndex])
+      const sourceLabel = getTaskLabel(DAILY_TASKS[sourceIndex])
+      const targetLabel = getTaskLabel(DAILY_TASKS[targetIndex])
       const source = getDragHandle(sourceLabel)
       const targetCell = screen.getByTitle(targetLabel)
       const targetRow = getRowByLabel(targetLabel)
@@ -379,12 +368,10 @@ describe('MatrixView / drag insertion indicator direction', () => {
 describe('MatrixView / task label note rendering', () => {
   it('renders the note in a separate element when the label has a note', () => {
     renderWithContext({ store: storeWithCharacter() })
-    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const label = getTaskLabel(DAILY_TASKS[0])
     const { primary, note } = splitTaskLabel(label)
     if (note === null) {
-      throw new Error(
-        'expected upstreamTasksDocument.daily[0] label to have a note',
-      )
+      throw new Error('expected DAILY_TASKS[0] label to have a note')
     }
     const row = getRowByLabel(label)
 
@@ -394,12 +381,10 @@ describe('MatrixView / task label note rendering', () => {
 
   it('does not render a note element when the label has no note', () => {
     renderWithContext({ store: storeWithCharacter() })
-    const label = getTaskLabel(upstreamTasksDocument.daily[2])
+    const label = getTaskLabel(DAILY_TASKS[2])
     const { note } = splitTaskLabel(label)
     if (note !== null) {
-      throw new Error(
-        'expected upstreamTasksDocument.daily[2] label to have no note',
-      )
+      throw new Error('expected DAILY_TASKS[2] label to have no note')
     }
     const row = getRowByLabel(label)
 
@@ -413,31 +398,27 @@ describe('MatrixView / hidden tasks', () => {
       store: storeWithCharacter({ hiddenTaskIds: [TOGGLE_TASK_ID] }),
     })
     expect(
-      screen.queryByTitle(getTaskLabel(upstreamTasksDocument.daily[0])),
+      screen.queryByTitle(getTaskLabel(DAILY_TASKS[0])),
     ).not.toBeInTheDocument()
-    expect(
-      screen.getByTitle(getTaskLabel(upstreamTasksDocument.daily[1])),
-    ).toBeInTheDocument()
+    expect(screen.getByTitle(getTaskLabel(DAILY_TASKS[1]))).toBeInTheDocument()
   })
 
   it('shows an empty-state message for a section when every task in it is hidden', () => {
-    const allDailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    const allDailyIds = DAILY_TASKS.map((task) => task.id)
     renderWithContext({
       store: storeWithCharacter({ hiddenTaskIds: allDailyIds }),
     })
     expect(screen.getByText(NO_VISIBLE_TASKS_MESSAGE)).toBeInTheDocument()
-    expect(screen.getAllByRole('rowheader')).toHaveLength(
-      upstreamTasksDocument.weekly.length,
-    )
+    expect(screen.getAllByRole('rowheader')).toHaveLength(WEEKLY_TASKS.length)
   })
 
   it('keeps the drag-and-drop target anchored to the full taskOrder position even when a hidden task sits between visible rows', () => {
-    const dailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    const dailyIds = DAILY_TASKS.map((task) => task.id)
     const { dispatch } = renderWithContext({
       store: storeWithCharacter({ hiddenTaskIds: [dailyIds[1]] }),
     })
-    const firstLabel = getTaskLabel(upstreamTasksDocument.daily[0])
-    const thirdLabel = getTaskLabel(upstreamTasksDocument.daily[2])
+    const firstLabel = getTaskLabel(DAILY_TASKS[0])
+    const thirdLabel = getTaskLabel(DAILY_TASKS[2])
     const source = getDragHandle(thirdLabel)
     const target = screen.getByTitle(firstLabel)
     const dataTransfer = fakeDataTransfer()
@@ -458,7 +439,7 @@ describe('MatrixView / completed task accordion', () => {
   })
 
   it('moves a fully-completed row into the accordion, opens it without side effects, and collapses again on a fresh render', async () => {
-    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const label = getTaskLabel(DAILY_TASKS[0])
     const store = storeWithCharacter({
       progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
     })
@@ -485,7 +466,7 @@ describe('MatrixView / completed task accordion', () => {
   })
 
   it('keeps a row in the normal list when only some, not all, displayed characters have completed it', () => {
-    const label = getTaskLabel(upstreamTasksDocument.daily[0])
+    const label = getTaskLabel(DAILY_TASKS[0])
     renderWithContext({
       store: storeWithCharacter({
         characters: [DEFAULT_CHARACTER, secondCharacter],
@@ -499,16 +480,14 @@ describe('MatrixView / completed task accordion', () => {
   })
 
   it('keeps drag-and-drop index math anchored to the full task order once a row has moved into the accordion', () => {
-    const dailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    const dailyIds = DAILY_TASKS.map((task) => task.id)
     const { dispatch } = renderWithContext({
       store: storeWithCharacter({
         progress: { [CHARACTER_ID]: { [dailyIds[0]]: 1 } },
       }),
     })
-    const source = getDragHandle(getTaskLabel(upstreamTasksDocument.daily[2]))
-    const target = screen.getByTitle(
-      getTaskLabel(upstreamTasksDocument.daily[1]),
-    )
+    const source = getDragHandle(getTaskLabel(DAILY_TASKS[2]))
+    const target = screen.getByTitle(getTaskLabel(DAILY_TASKS[1]))
     const dataTransfer = fakeDataTransfer()
 
     fireEvent.dragStart(source, { dataTransfer })
@@ -519,7 +498,7 @@ describe('MatrixView / completed task accordion', () => {
 
   it('renders an empty normal-list table body without an extra empty-state message when every visible task is complete', () => {
     const allDailyProgress = Object.fromEntries(
-      upstreamTasksDocument.daily.map((task) => [task.id, task.maxProgress]),
+      DAILY_TASKS.map((task) => [task.id, task.maxProgress]),
     )
     renderWithContext({
       store: storeWithCharacter({
@@ -540,7 +519,7 @@ describe('MatrixView / completed task accordion', () => {
     ).toHaveLength(0)
     expect(
       within(dailySection as HTMLElement).getByRole('button', {
-        name: `完了済み（${upstreamTasksDocument.daily.length}）`,
+        name: `完了済み（${DAILY_TASKS.length}）`,
       }),
     ).toBeInTheDocument()
   })
@@ -557,7 +536,7 @@ const getSectionHeader = (title: string) => {
 
 describe('MatrixView / section header progress', () => {
   it('shows the summarizeCategoryProgress completed/total counts for the section', () => {
-    const dailyTotal = upstreamTasksDocument.daily.length
+    const dailyTotal = DAILY_TASKS.length
     renderWithContext({
       store: storeWithCharacter({
         progress: { [CHARACTER_ID]: { [TOGGLE_TASK_ID]: 1 } },
@@ -569,7 +548,7 @@ describe('MatrixView / section header progress', () => {
   })
 
   it('excludes a hidden task from the denominator', () => {
-    const dailyTotal = upstreamTasksDocument.daily.length
+    const dailyTotal = DAILY_TASKS.length
     renderWithContext({
       store: storeWithCharacter({ hiddenTaskIds: [TOGGLE_TASK_ID] }),
     })
@@ -581,7 +560,7 @@ describe('MatrixView / section header progress', () => {
   })
 
   it('shows 0 / 0 完了 and keeps the 表示タスク設定 button when every task in the section is hidden', () => {
-    const allDailyIds = upstreamTasksDocument.daily.map((task) => task.id)
+    const allDailyIds = DAILY_TASKS.map((task) => task.id)
     renderWithContext({
       store: storeWithCharacter({ hiddenTaskIds: allDailyIds }),
     })

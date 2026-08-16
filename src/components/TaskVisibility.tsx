@@ -1,12 +1,9 @@
-import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { getTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import type { Task } from '../data/taskSchema'
 import { setTaskDetailedCount, setTaskHidden } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
-
-const DAILY_TASKS: Task[] = upstreamTasksDocument.daily
-const WEEKLY_TASKS: Task[] = upstreamTasksDocument.weekly
 
 type Dispatch = StoreContextValue['dispatch']
 

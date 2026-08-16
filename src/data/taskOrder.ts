@@ -1,10 +1,10 @@
-import upstreamTasksDocument from './upstreamTasks.json'
+import { DAILY_TASKS, WEEKLY_TASKS } from './projectTasksResolver'
 import type { Task } from './taskSchema'
 import type { TaskCategory } from './taskLookup'
 
 const TASKS_BY_CATEGORY: Record<TaskCategory, Task[]> = {
-  daily: upstreamTasksDocument.daily,
-  weekly: upstreamTasksDocument.weekly,
+  daily: DAILY_TASKS,
+  weekly: WEEKLY_TASKS,
 }
 
 export function resolveTaskOrder(

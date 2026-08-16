@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
-import upstreamTasksDocument from './data/upstreamTasks.json'
+import { DAILY_TASKS } from './data/projectTasksResolver'
 import { getTaskLabel } from './data/taskLabel'
 import { RECOVERED_MESSAGE } from './store/StoreProvider'
 import { STORAGE_KEY } from './store/persistence'
@@ -179,7 +179,7 @@ describe('App / タスク表示設定とマトリクスの連動', () => {
     await user.type(screen.getByLabelText('キャラクター名'), 'Alice')
     await user.click(screen.getByRole('button', { name: '追加' }))
 
-    const taskLabel = getTaskLabel(upstreamTasksDocument.daily[0])
+    const taskLabel = getTaskLabel(DAILY_TASKS[0])
     const checkbox = screen.getByLabelText(taskLabel)
     expect(checkbox).toBeChecked()
     expect(screen.getByTitle(taskLabel)).toBeInTheDocument()

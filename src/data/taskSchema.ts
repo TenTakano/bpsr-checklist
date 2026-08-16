@@ -6,14 +6,16 @@ export const FORBIDDEN_IDENTIFIER_KEYS = new Set([
   'prototype',
 ])
 
+export const TaskIdSchema = z
+  .string()
+  .regex(/^[a-z0-9_]+$/)
+  .refine((id) => !FORBIDDEN_IDENTIFIER_KEYS.has(id), {
+    message:
+      'id にはプロトタイプ汚染につながる __proto__ / constructor / prototype は使用できません',
+  })
+
 export const TaskSchema = z.strictObject({
-  id: z
-    .string()
-    .regex(/^[a-z0-9_]+$/)
-    .refine((id) => !FORBIDDEN_IDENTIFIER_KEYS.has(id), {
-      message:
-        'id にはプロトタイプ汚染につながる __proto__ / constructor / prototype は使用できません',
-    }),
+  id: TaskIdSchema,
   label: z.string().min(1),
   color: z.string().min(1),
   maxProgress: z.number().int().positive(),
@@ -22,14 +24,18 @@ export const TaskSchema = z.strictObject({
 
 export type Task = z.infer<typeof TaskSchema>
 
-function findDuplicateIds(tasks: Task[]): string[] {
+export function findDuplicateIds<T>(
+  items: T[],
+  getId: (item: T) => string,
+): string[] {
   const seen = new Set<string>()
   const duplicates = new Set<string>()
-  for (const task of tasks) {
-    if (seen.has(task.id)) {
-      duplicates.add(task.id)
+  for (const item of items) {
+    const id = getId(item)
+    if (seen.has(id)) {
+      duplicates.add(id)
     }
-    seen.add(task.id)
+    seen.add(id)
   }
   return [...duplicates]
 }
@@ -45,7 +51,10 @@ export const UpstreamTasksDocumentSchema = z
     weekly: z.array(TaskSchema).min(1),
   })
   .superRefine((document, ctx) => {
-    const duplicates = findDuplicateIds([...document.daily, ...document.weekly])
+    const duplicates = findDuplicateIds(
+      [...document.daily, ...document.weekly],
+      (task) => task.id,
+    )
     if (duplicates.length > 0) {
       ctx.addIssue({
         code: 'custom',

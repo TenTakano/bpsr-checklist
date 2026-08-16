@@ -5,7 +5,7 @@ import {
   type SplitTaskLabel,
 } from './taskLabel.ts'
 import labelsJa from './labels.ja.json'
-import upstreamTasks from './upstreamTasks.json'
+import { DAILY_TASKS, WEEKLY_TASKS } from './projectTasksResolver.ts'
 import type { Task } from './taskSchema.ts'
 
 const buildTask = (overrides: Partial<Task> = {}): Task => ({
@@ -17,8 +17,8 @@ const buildTask = (overrides: Partial<Task> = {}): Task => ({
   ...overrides,
 })
 
-const collectUpstreamTaskIds = (): string[] =>
-  [...upstreamTasks.daily, ...upstreamTasks.weekly].map((task) => task.id)
+const collectProjectTaskIds = (): string[] =>
+  [...DAILY_TASKS, ...WEEKLY_TASKS].map((task) => task.id)
 
 describe('getTaskLabel', () => {
   it('既知の id には日本語ラベルを返す', () => {
@@ -38,15 +38,15 @@ describe('getTaskLabel', () => {
 })
 
 describe('labels.ja.json', () => {
-  it('upstream のタスク id と1対1で対応し、欠落・孤児キーがない', () => {
-    const upstreamTaskIds = collectUpstreamTaskIds()
-    const upstreamTaskIdSet = new Set(upstreamTaskIds)
+  it('プロジェクトタスク id と1対1で対応し、欠落・孤児キーがない', () => {
+    const projectTaskIds = collectProjectTaskIds()
+    const projectTaskIdSet = new Set(projectTaskIds)
 
-    const missingIds = upstreamTaskIds.filter(
+    const missingIds = projectTaskIds.filter(
       (id) => !Object.hasOwn(labelsJa, id),
     )
     const orphanKeys = Object.keys(labelsJa).filter(
-      (id) => !upstreamTaskIdSet.has(id),
+      (id) => !projectTaskIdSet.has(id),
     )
 
     expect(missingIds).toEqual([])
