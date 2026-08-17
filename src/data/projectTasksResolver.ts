@@ -9,7 +9,7 @@ import {
   type ProjectTaskDefinition,
 } from './projectTaskSchema'
 import type { TaskCategory } from './taskLookup'
-import { PROJECT_TASKS } from './projectTasks'
+import { PROJECT_TASKS, EXCLUDED_UPSTREAM_IDS } from './projectTasks'
 
 export interface ResolvedProjectTasks {
   daily: Task[]
@@ -77,25 +77,78 @@ export function resolveProjectTasks(
   return { daily, weekly }
 }
 
+function collectReferencedUpstreamIds(
+  definitions: ProjectTaskDefinition[],
+): Set<string> {
+  return new Set(definitions.flatMap((definition) => definition.upstreamIds))
+}
+
+function listUpstreamIds(upstreamDocument: UpstreamTasksDocument): string[] {
+  return [...upstreamDocument.daily, ...upstreamDocument.weekly].map(
+    (task) => task.id,
+  )
+}
+
 export function findUnmappedUpstreamIds(
   definitions: ProjectTaskDefinition[],
   upstreamDocument: UpstreamTasksDocument,
+  excludedUpstreamIds: string[] = [],
 ): string[] {
-  const referencedUpstreamIds = new Set(
-    definitions.flatMap((definition) => definition.upstreamIds),
+  const referencedUpstreamIds = collectReferencedUpstreamIds(definitions)
+  const excludedUpstreamIdSet = new Set(excludedUpstreamIds)
+  return listUpstreamIds(upstreamDocument).filter(
+    (upstreamId) =>
+      !referencedUpstreamIds.has(upstreamId) &&
+      !excludedUpstreamIdSet.has(upstreamId),
   )
-  return [...upstreamDocument.daily, ...upstreamDocument.weekly]
-    .map((task) => task.id)
-    .filter((upstreamId) => !referencedUpstreamIds.has(upstreamId))
+}
+
+export function findExcludedIdsOverlappingProjectTasks(
+  definitions: ProjectTaskDefinition[],
+  excludedUpstreamIds: string[],
+): string[] {
+  const referencedUpstreamIds = collectReferencedUpstreamIds(definitions)
+  return excludedUpstreamIds.filter((excludedUpstreamId) =>
+    referencedUpstreamIds.has(excludedUpstreamId),
+  )
+}
+
+export function findNonexistentExcludedUpstreamIds(
+  excludedUpstreamIds: string[],
+  upstreamDocument: UpstreamTasksDocument,
+): string[] {
+  const upstreamIdSet = new Set(listUpstreamIds(upstreamDocument))
+  return excludedUpstreamIds.filter(
+    (excludedUpstreamId) => !upstreamIdSet.has(excludedUpstreamId),
+  )
 }
 
 const upstreamTasksDocument = UpstreamTasksDocumentSchema.parse(
   upstreamTasksDocumentRaw,
 )
 
+const excludedIdsOverlappingProjectTasks =
+  findExcludedIdsOverlappingProjectTasks(PROJECT_TASKS, EXCLUDED_UPSTREAM_IDS)
+if (excludedIdsOverlappingProjectTasks.length > 0) {
+  throw new Error(
+    `EXCLUDED_UPSTREAM_IDS の以下の id が projectTasks.ts の upstreamIds と重複しています: ${excludedIdsOverlappingProjectTasks.join(', ')}`,
+  )
+}
+
+const nonexistentExcludedUpstreamIds = findNonexistentExcludedUpstreamIds(
+  EXCLUDED_UPSTREAM_IDS,
+  upstreamTasksDocument,
+)
+if (nonexistentExcludedUpstreamIds.length > 0) {
+  throw new Error(
+    `EXCLUDED_UPSTREAM_IDS の以下の id が upstreamTasks.json に存在しません: ${nonexistentExcludedUpstreamIds.join(', ')}`,
+  )
+}
+
 const unmappedUpstreamIds = findUnmappedUpstreamIds(
   PROJECT_TASKS,
   upstreamTasksDocument,
+  EXCLUDED_UPSTREAM_IDS,
 )
 if (unmappedUpstreamIds.length > 0) {
   throw new Error(

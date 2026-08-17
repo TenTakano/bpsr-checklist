@@ -25,8 +25,11 @@ pnpm extract -- /path/to/script.js --upstream-commit <sha>
 upstream のタスクが追加・削除された際の手順:
 
 1. `pnpm extract` で `src/data/upstreamTasks.json` を再生成
-2. `src/data/labels.ja.json` も追従して更新
-3. `src/data/projectTasks.ts` のマッピングも追従して更新（追加された upstream id にはエントリを追加し、削除された upstream id を参照しているエントリは除去する。既定では恒等マッピング `{ id: <本家 id>, upstreamIds: [<本家 id>] }` を追加する）
+2. `src/data/projectTasks.ts` のマッピングを追従して更新する
+   - 追加された upstream id にはエントリを追加する。プロジェクトタスクとして表示する場合は既定で `{ id: <本家 id から daily_ / weekly_ を除いた id>, upstreamIds: [<本家 id>] }` を追加する
+   - 意図的にプロジェクトタスクとして出さない upstream id は `EXCLUDED_UPSTREAM_IDS` に追記する（`PROJECT_TASKS` にはエントリを追加しない）
+   - 削除された upstream id を参照しているエントリ（`PROJECT_TASKS` / `EXCLUDED_UPSTREAM_IDS` いずれも）は除去する
+3. `src/data/labels.ja.json` も追従して更新する。新規プロジェクトタスクの id をキーとして追加し、削除されたプロジェクトタスクの id のキーを除去する。`EXCLUDED_UPSTREAM_IDS` に含めた id は `PROJECT_TASKS` に存在しないため、対応するキーを `labels.ja.json` に置かない
 
 注意点:
 
