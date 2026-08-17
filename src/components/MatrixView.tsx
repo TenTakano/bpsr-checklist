@@ -1,9 +1,9 @@
 import { useMemo, useState, type DragEvent } from 'react'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
 import { resolveTaskColor } from '../data/taskColors'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
 import { resolveTaskOrder } from '../data/taskOrder'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import type { Task } from '../data/taskSchema'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { isTaskComplete, readProgressValue } from '../domain/taskProgress'
@@ -12,9 +12,6 @@ import { useStore, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
 import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
-
-const DAILY_TASKS: Task[] = upstreamTasksDocument.daily
-const WEEKLY_TASKS: Task[] = upstreamTasksDocument.weekly
 
 type Dispatch = StoreContextValue['dispatch']
 type DragOverDirection = 'above' | 'below' | null

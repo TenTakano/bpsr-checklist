@@ -20,17 +20,20 @@ pnpm extract -- /path/to/script.js --upstream-commit <sha>
 
 表示用の日本語ラベルは `src/data/labels.ja.json` でローカル管理しています。
 
-### upstream 追従時の日本語ラベル更新
+### upstream 追従時の更新手順
 
 upstream のタスクが追加・削除された際の手順:
 
 1. `pnpm extract` で `src/data/upstreamTasks.json` を再生成
 2. `src/data/labels.ja.json` も追従して更新
+3. `src/data/projectTasks.ts` のマッピングも追従して更新（追加された upstream id にはエントリを追加し、削除された upstream id を参照しているエントリは除去する。既定では恒等マッピング `{ id: <本家 id>, upstreamIds: [<本家 id>] }` を追加する）
 
 注意点:
 
 - タスク id の追加・削除を怠ると `src/data/taskLabel.test.ts` のテストが失敗します
 - id が変わらずラベル文言のみが変更された場合、このテストでは検出されません
+- `projectTasks.ts` へのエントリ追加漏れ・除去漏れがあると、`src/data/projectTasksResolver.ts` のモジュール初期化時に未マッピングの upstream id や存在しない `upstreamIds` を検出して例外を投げるため、`pnpm test` が失敗します
+- タスク定義がミラーリングレイヤーとプロジェクトレイヤーに分かれている設計の詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください
 
 ## 開発
 

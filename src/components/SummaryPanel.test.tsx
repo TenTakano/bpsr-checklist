@@ -1,19 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import { SummaryPanel } from './SummaryPanel'
 
-const DAILY_TASK_IDS = upstreamTasksDocument.daily.map((task) => task.id)
-const DAILY_TARGET_TASK = upstreamTasksDocument.daily[0]
+const DAILY_TASK_IDS = DAILY_TASKS.map((task) => task.id)
+const DAILY_TARGET_TASK = DAILY_TASKS[0]
 const DAILY_HIDDEN_TASK_IDS = DAILY_TASK_IDS.filter(
   (id) => id !== DAILY_TARGET_TASK.id,
 )
-const WEEKLY_HIDDEN_TASK_IDS = upstreamTasksDocument.weekly.map(
-  (task) => task.id,
-)
+const WEEKLY_HIDDEN_TASK_IDS = WEEKLY_TASKS.map((task) => task.id)
 
 const renderWithContext = (overrides: Partial<StoreContextValue> = {}) => {
   const dispatch = vi.fn()

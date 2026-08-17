@@ -1,13 +1,10 @@
 import { useMemo } from 'react'
-import upstreamTasksDocument from '../data/upstreamTasks.json'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import type { Task } from '../data/taskSchema'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { useStore } from '../store/context'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
-
-const DAILY_TASKS: Task[] = upstreamTasksDocument.daily
-const WEEKLY_TASKS: Task[] = upstreamTasksDocument.weekly
 
 export function SummaryPanel() {
   const { store } = useStore()
