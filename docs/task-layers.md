@@ -26,12 +26,14 @@
 
 ## label / color / maxProgress / optional の導出ルール
 
-`projectTasks.ts` のエントリ（`upstreamIds` が非空、すなわち upstream 由来のもの）で `label` / `color` / `maxProgress` / `optional` を明示しなかった場合、以下のルールで upstream 側から導出されます（独自タスクの導出ルールは前節を参照）。
+`projectTasks.ts` は `label` / `color` / `maxProgress` / `optional` の source of truth です。`upstreamIds` が非空（upstream 由来）のエントリでも全件で明示指定し、本家と同じ値を使う場合でも upstream 側の値をコピーして書きます。
+
+明示を省略した場合のみ、フォールバックとして以下のルールで upstream 側から導出されます（独自タスクの導出ルールは前節を参照）。
 
 - `label` / `color` / `optional`: 先頭の `upstreamIds`（統合・分割時は代表とみなす upstream タスク）から継承します。
 - `maxProgress`: `upstreamIds` に対応する upstream タスクの `maxProgress` の合計です。
 
-これは、本家の変更（ラベル文言の調整や `maxProgress` の変化など）に自動で追従できるようにするための設計です。`projectTasks.ts` 側に値を書き写すと二重管理になり追従漏れの原因になるため、上書きが必要な場合のみ明示的に指定してください。
+このフォールバックは upstream 由来のデータをスキーマ上許容するために残していますが、本家の変更（ラベル文言の調整や `maxProgress` の変化など）にアプリの表示が自動で追従することは意図していません。アプリの表示は `projectTasks.ts` に明示された値のみで決まり、upstream 側の更新を取り込むかどうかは `projectTasks.ts` を編集する側が都度判断します。
 
 ## resolver / スキーマが強制する不変条件
 
