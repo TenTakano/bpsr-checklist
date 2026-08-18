@@ -108,6 +108,84 @@ describe('resolveProjectTasks', () => {
     })
   })
 
+  it('resolves a project-only task (empty upstreamIds) using its explicit fields', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      {
+        id: 'project_only',
+        upstreamIds: [],
+        label: 'Project Only',
+        color: 'purple',
+        maxProgress: 3,
+        category: 'weekly',
+      },
+    ]
+    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+
+    expect(result.weekly).toEqual([
+      {
+        id: 'project_only',
+        label: 'Project Only',
+        color: 'purple',
+        maxProgress: 3,
+        optional: false,
+      },
+    ])
+    expect(result.daily).toEqual([])
+  })
+
+  it('defaults optional to false for a project-only task when not specified', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      {
+        id: 'project_only',
+        upstreamIds: [],
+        label: 'Project Only',
+        color: 'purple',
+        maxProgress: 1,
+        category: 'daily',
+      },
+    ]
+    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+
+    expect(result.daily[0].optional).toBe(false)
+  })
+
+  it('applies an explicit optional: true for a project-only task', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      {
+        id: 'project_only',
+        upstreamIds: [],
+        label: 'Project Only',
+        color: 'purple',
+        maxProgress: 1,
+        category: 'daily',
+        optional: true,
+      },
+    ]
+    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+
+    expect(result.daily[0].optional).toBe(true)
+  })
+
+  it('lets a project-only task (empty upstreamIds) coexist with merge/split entries without tripping their cross validations', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      { id: 'daily_a', upstreamIds: ['daily_a'] },
+      {
+        id: 'project_only',
+        upstreamIds: [],
+        label: 'Project Only',
+        color: 'purple',
+        maxProgress: 1,
+        category: 'daily',
+      },
+    ]
+    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+
+    expect(result.daily.map((task) => task.id)).toEqual([
+      'daily_a',
+      'project_only',
+    ])
+  })
+
   it('throws when a definition references an unknown upstreamId', () => {
     const definitions: ProjectTaskDefinition[] = [
       { id: 'daily_unknown', upstreamIds: ['daily_does_not_exist'] },

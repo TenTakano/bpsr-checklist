@@ -38,6 +38,15 @@ upstream のタスクが追加・削除された際の手順:
 - `projectTasks.ts` へのエントリ追加漏れ・除去漏れがあると、`src/data/projectTasksResolver.ts` のモジュール初期化時に未マッピングの upstream id や存在しない `upstreamIds` を検出して例外を投げるため、`pnpm test` が失敗します
 - タスク定義がミラーリングレイヤーとプロジェクトレイヤーに分かれている設計の詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください
 
+### upstream に無いタスクを追加する場合
+
+日本版のみに存在するタスクなど、upstream（`script.js`）に対応するタスクがない独自タスクは `src/data/projectTasks.ts` の `PROJECT_TASKS` に `upstreamIds: []` のエントリとして追加できます。手順:
+
+1. `PROJECT_TASKS` に `upstreamIds: []` のエントリを追加し、`label` / `color` / `maxProgress` / `category`（`'daily' | 'weekly'`）の 4 フィールドをすべて明示指定する
+2. `src/data/labels.ja.json` に追加した id をキーとして追記する（追加を怠ると `src/data/taskLabel.test.ts` が失敗する）
+
+独自タスクの必須フィールドの詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください。
+
 ## 開発
 
 Node.js は `^22.13.0 || >=24` が必要です。パッケージマネージャは pnpm を使用します。

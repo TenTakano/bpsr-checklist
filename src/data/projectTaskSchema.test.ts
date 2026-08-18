@@ -42,6 +42,20 @@ describe('createProjectTaskDefinitionsSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts a project-only task with all four required fields specified', () => {
+    const result = parse([
+      {
+        id: 'project_only',
+        upstreamIds: [],
+        label: 'Project Only',
+        color: 'purple',
+        maxProgress: 1,
+        category: 'daily',
+      },
+    ])
+    expect(result.success).toBe(true)
+  })
+
   it.each([
     [
       'duplicate project task ids',
@@ -78,6 +92,69 @@ describe('createProjectTaskDefinitionsSchema', () => {
       'an id containing the prototype forbidden identifier',
       [{ id: 'prototype', upstreamIds: ['daily_a'] }],
       /プロトタイプ汚染/,
+    ],
+    [
+      'a project-only task missing label',
+      [
+        {
+          id: 'project_only',
+          upstreamIds: [],
+          color: 'purple',
+          maxProgress: 1,
+          category: 'daily',
+        },
+      ],
+      /label の明示指定が必要です/,
+    ],
+    [
+      'a project-only task missing color',
+      [
+        {
+          id: 'project_only',
+          upstreamIds: [],
+          label: 'Project Only',
+          maxProgress: 1,
+          category: 'daily',
+        },
+      ],
+      /color の明示指定が必要です/,
+    ],
+    [
+      'a project-only task missing maxProgress',
+      [
+        {
+          id: 'project_only',
+          upstreamIds: [],
+          label: 'Project Only',
+          color: 'purple',
+          category: 'daily',
+        },
+      ],
+      /maxProgress の明示指定が必要です/,
+    ],
+    [
+      'a project-only task missing category',
+      [
+        {
+          id: 'project_only',
+          upstreamIds: [],
+          label: 'Project Only',
+          color: 'purple',
+          maxProgress: 1,
+        },
+      ],
+      /category の明示指定が必要です/,
+    ],
+    [
+      'a non-empty upstreamIds entry specifying category',
+      [
+        {
+          id: 'daily_a',
+          upstreamIds: ['daily_a'],
+          category: 'daily',
+        },
+      ],
+      /category を指定できません/,
     ],
   ] satisfies [string, ProjectTaskDefinition[], RegExp][])(
     'rejects %s',
