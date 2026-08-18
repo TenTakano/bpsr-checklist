@@ -20,8 +20,9 @@
 
 `src/data/projectTaskSchema.ts` と `src/data/projectTasksResolver.ts` は以下を強制しており、違反時は例外（テスト失敗）になります。
 
-- プロジェクト id の一意性: `projectTasks.ts` 内で id が重複していないこと。
+- プロジェクト id の一意性: `projectTasks.ts` 内で id が重複していないこと。プロジェクト id は upstream の `daily_` / `weekly_` プレフィックスを持たないため、daily/weekly 間の衝突は id 体系ではなくこの重複検査のみが担保している。将来 upstream 側に id が追加され既存のプロジェクト id と衝突した場合は、この検査がモジュール初期化時の例外として検出する（手動での識別子の付け替えが必要になる）。
 - daily/weekly を跨いだ統合の禁止: 1 つのプロジェクトタスクの `upstreamIds` が daily と weekly の両方のカテゴリにまたがっていないこと。
 - 分割時の `maxProgress` 明示指定: 同じ upstream id を複数のプロジェクトタスクが参照する（＝分割する）場合は `maxProgress` の明示指定が必須。既定値の「`upstreamIds` の合計」をそのまま使うと、分割先それぞれが同じ upstream タスクの回数を丸ごと計上してしまい合計が過剰になるため。
 - 参照整合性: `projectTasks.ts` の `upstreamIds` が指す id は `upstreamTasks.json` に実在すること。
-- 未マッピング検出: `upstreamTasks.json` に存在する id が `projectTasks.ts` のどのエントリからも参照されていない場合、モジュール初期化時に例外を投げる。
+- 未マッピング検出: `upstreamTasks.json` に存在する id が `projectTasks.ts` のどのエントリからも参照されておらず、かつ `EXCLUDED_UPSTREAM_IDS`（`projectTasks.ts`）にも含まれていない場合、モジュール初期化時に例外を投げる。
+- 除外機構: `EXCLUDED_UPSTREAM_IDS` は「プロジェクトタスクとして意図的に出さない」upstream id の集合。未マッピング検出の対象から除外される。`EXCLUDED_UPSTREAM_IDS` の id が `projectTasks.ts` の何らかの `upstreamIds` と重複している場合、および `EXCLUDED_UPSTREAM_IDS` の id が `upstreamTasks.json` に実在しない場合は、それぞれモジュール初期化時に例外を投げる。

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  findExcludedIdsOverlappingProjectTasks,
+  findNonexistentExcludedUpstreamIds,
   findUnmappedUpstreamIds,
   resolveProjectTasks,
 } from './projectTasksResolver'
@@ -146,5 +148,53 @@ describe('findUnmappedUpstreamIds', () => {
     expect(
       findUnmappedUpstreamIds(definitions, buildUpstreamDocument()),
     ).toEqual(['daily_b'])
+  })
+
+  it('excludes ids listed in excludedUpstreamIds from the unmapped result, without hiding other unmapped ids', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      { id: 'daily_a', upstreamIds: ['daily_a'] },
+    ]
+    expect(
+      findUnmappedUpstreamIds(definitions, buildUpstreamDocument(), [
+        'daily_b',
+      ]),
+    ).toEqual(['weekly_a'])
+  })
+})
+
+describe('findExcludedIdsOverlappingProjectTasks', () => {
+  it('returns an empty array when no excluded id is referenced by any definition', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      { id: 'daily_a', upstreamIds: ['daily_a'] },
+    ]
+    expect(
+      findExcludedIdsOverlappingProjectTasks(definitions, ['daily_b']),
+    ).toEqual([])
+  })
+
+  it('returns excluded ids that a definition still references', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      { id: 'daily_a', upstreamIds: ['daily_a'] },
+    ]
+    expect(
+      findExcludedIdsOverlappingProjectTasks(definitions, ['daily_a']),
+    ).toEqual(['daily_a'])
+  })
+})
+
+describe('findNonexistentExcludedUpstreamIds', () => {
+  it('returns an empty array when every excluded id exists in the upstream document', () => {
+    expect(
+      findNonexistentExcludedUpstreamIds(['daily_b'], buildUpstreamDocument()),
+    ).toEqual([])
+  })
+
+  it('returns excluded ids that do not exist in the upstream document', () => {
+    expect(
+      findNonexistentExcludedUpstreamIds(
+        ['daily_does_not_exist'],
+        buildUpstreamDocument(),
+      ),
+    ).toEqual(['daily_does_not_exist'])
   })
 })
