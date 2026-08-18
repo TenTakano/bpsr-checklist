@@ -7,9 +7,26 @@
 
 両者は `src/data/projectTasksResolver.ts` がマージし、アプリが実際に使う `Task[]`（`DAILY_TASKS` / `WEEKLY_TASKS`）を組み立てます。
 
+## 独自タスク（upstream に存在しないタスク）
+
+`projectTasks.ts` のエントリは `upstreamIds` を空配列にすることで、upstream 側に対応するタスクを持たない「プロジェクト独自タスク」（例: 日本版のみに存在するタスク）として定義できます。
+
+独自タスクのエントリでは、upstream から値を導出できないため以下 4 フィールドすべての明示指定が必須です。
+
+- `label`
+- `color`
+- `maxProgress`
+- `category`（`'daily' | 'weekly'`）: このエントリを daily/weekly のどちらに分類するかを指定します。
+  - upstream 由来タスクは `upstreamIds` から解決されるカテゴリを使うため `category` を明示できません（指定すると検証エラーになります）。
+  - この非対称な扱いは、upstream 由来タスクの表示カテゴリを上書きする機能自体が Issue #91 で未確定のため、現時点では持ち込まないという判断によるものです。
+
+`optional` は独自タスクでも省略可能で、省略時は `false` になります（upstream 由来タスクのように継承元がないため）。
+
+`category` という名前は既存の `TaskCategory` 型（`src/data/taskLookup.ts`）の語彙に合わせたものです。Issue #91 でリセット周期を扱う設計が入る際、このフィールドはその設計へ統合・改名される可能性があります。
+
 ## label / color / maxProgress / optional の導出ルール
 
-`projectTasks.ts` のエントリで `label` / `color` / `maxProgress` / `optional` を明示しなかった場合、以下のルールで upstream 側から導出されます。
+`projectTasks.ts` のエントリ（`upstreamIds` が非空、すなわち upstream 由来のもの）で `label` / `color` / `maxProgress` / `optional` を明示しなかった場合、以下のルールで upstream 側から導出されます（独自タスクの導出ルールは前節を参照）。
 
 - `label` / `color` / `optional`: 先頭の `upstreamIds`（統合・分割時は代表とみなす upstream タスク）から継承します。
 - `maxProgress`: `upstreamIds` に対応する upstream タスクの `maxProgress` の合計です。
@@ -26,3 +43,5 @@
 - 参照整合性: `projectTasks.ts` の `upstreamIds` が指す id は `upstreamTasks.json` に実在すること。
 - 未マッピング検出: `upstreamTasks.json` に存在する id が `projectTasks.ts` のどのエントリからも参照されておらず、かつ `EXCLUDED_UPSTREAM_IDS`（`projectTasks.ts`）にも含まれていない場合、モジュール初期化時に例外を投げる。
 - 除外機構: `EXCLUDED_UPSTREAM_IDS` は「プロジェクトタスクとして意図的に出さない」upstream id の集合。未マッピング検出の対象から除外される。`EXCLUDED_UPSTREAM_IDS` の id が `projectTasks.ts` の何らかの `upstreamIds` と重複している場合、および `EXCLUDED_UPSTREAM_IDS` の id が `upstreamTasks.json` に実在しない場合は、それぞれモジュール初期化時に例外を投げる。
+- 独自タスクの必須フィールド: `upstreamIds` が空のエントリは `label` / `color` / `maxProgress` / `category` の 4 フィールドすべての明示指定が必須。いずれか欠けている場合は検証エラーになる。
+- 独自タスクと `category` の排他性: `upstreamIds` が非空のエントリで `category` を指定すると検証エラーになる（upstream 由来タスクの表示カテゴリ上書きは Issue #91 に送られており、本レイヤーでは扱わない）。

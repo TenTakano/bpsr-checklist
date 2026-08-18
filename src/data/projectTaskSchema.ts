@@ -4,11 +4,12 @@ import type { TaskCategory } from './taskLookup'
 
 export const ProjectTaskDefinitionSchema = z.strictObject({
   id: TaskIdSchema,
-  upstreamIds: z.array(TaskIdSchema).min(1),
+  upstreamIds: z.array(TaskIdSchema),
   label: z.string().min(1).optional(),
   color: z.string().min(1).optional(),
   maxProgress: z.number().int().positive().optional(),
   optional: z.boolean().optional(),
+  category: z.enum(['daily', 'weekly']).optional(),
 })
 
 export type ProjectTaskDefinition = z.infer<typeof ProjectTaskDefinitionSchema>
@@ -69,6 +70,29 @@ export function createProjectTaskDefinitionsSchema(
           ctx.addIssue({
             code: 'custom',
             message: `プロジェクトタスク ${definition.id} は upstreamId を他のエントリと共有しているため maxProgress の明示指定が必要です`,
+          })
+        }
+      }
+
+      for (const definition of definitions) {
+        const isProjectOnly = definition.upstreamIds.length === 0
+        if (isProjectOnly) {
+          const missingFields: string[] = []
+          if (definition.label === undefined) missingFields.push('label')
+          if (definition.color === undefined) missingFields.push('color')
+          if (definition.maxProgress === undefined)
+            missingFields.push('maxProgress')
+          if (definition.category === undefined) missingFields.push('category')
+          if (missingFields.length > 0) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `プロジェクトタスク ${definition.id} は upstreamIds が空の独自タスクのため ${missingFields.join(', ')} の明示指定が必要です`,
+            })
+          }
+        } else if (definition.category !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `プロジェクトタスク ${definition.id} は upstreamIds が非空のため category を指定できません`,
           })
         }
       }

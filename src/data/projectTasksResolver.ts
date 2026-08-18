@@ -38,8 +38,42 @@ export function resolveProjectTasks(
 
   const daily: Task[] = []
   const weekly: Task[] = []
+  const pushByCategory = (category: TaskCategory, task: Task): void => {
+    if (category === 'daily') {
+      daily.push(task)
+    } else {
+      weekly.push(task)
+    }
+  }
 
   for (const definition of validatedDefinitions) {
+    const isProjectOnly = definition.upstreamIds.length === 0
+
+    if (isProjectOnly) {
+      const { category, label, color, maxProgress } = definition
+      if (
+        category === undefined ||
+        label === undefined ||
+        color === undefined ||
+        maxProgress === undefined
+      ) {
+        throw new Error(
+          `プロジェクトタスク ${definition.id} の label/color/maxProgress/category を解決できません`,
+        )
+      }
+
+      const resolvedTask: Task = {
+        id: definition.id,
+        label,
+        color,
+        maxProgress,
+        optional: definition.optional ?? false,
+      }
+
+      pushByCategory(category, resolvedTask)
+      continue
+    }
+
     const upstreamTasks = definition.upstreamIds.map((upstreamId) => {
       const upstreamTask = upstreamTaskById.get(upstreamId)
       if (upstreamTask === undefined) {
@@ -67,11 +101,7 @@ export function resolveProjectTasks(
       optional: definition.optional ?? primaryUpstreamTask.optional,
     }
 
-    if (category === 'daily') {
-      daily.push(resolvedTask)
-    } else {
-      weekly.push(resolvedTask)
-    }
+    pushByCategory(category, resolvedTask)
   }
 
   return { daily, weekly }
