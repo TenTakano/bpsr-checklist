@@ -4,6 +4,7 @@ import {
   findNonexistentExcludedUpstreamIds,
   findUnmappedUpstreamIds,
   resolveProjectTasks,
+  validateProjectTaskDefinitions,
 } from './projectTasksResolver'
 import type { UpstreamTasksDocument } from './taskSchema'
 import type { ProjectTaskDefinition } from './projectTaskSchema'
@@ -65,7 +66,7 @@ describe('resolveProjectTasks', () => {
         category: 'weekly',
       },
     ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+    const result = resolveProjectTasks(definitions)
 
     expect(result.daily).toEqual([
       {
@@ -96,7 +97,7 @@ describe('resolveProjectTasks', () => {
         optional: true,
       }),
     ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+    const result = resolveProjectTasks(definitions)
 
     expect(result.daily[0]).toEqual({
       id: 'daily_a',
@@ -119,7 +120,7 @@ describe('resolveProjectTasks', () => {
         category: 'daily',
       },
     ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+    const result = resolveProjectTasks(definitions)
 
     expect(result.daily).toEqual([
       {
@@ -144,7 +145,7 @@ describe('resolveProjectTasks', () => {
         category: 'weekly',
       },
     ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+    const result = resolveProjectTasks(definitions)
 
     expect(result.weekly).toEqual([
       {
@@ -158,7 +159,7 @@ describe('resolveProjectTasks', () => {
     expect(result.daily).toEqual([])
   })
 
-  it('lets a project-only task (empty upstreamIds) coexist with merge/split entries without tripping their cross validations', () => {
+  it('lets a project-only task (empty upstreamIds) coexist with merge/split entries', () => {
     const definitions: ProjectTaskDefinition[] = [
       buildDefinition(),
       {
@@ -171,7 +172,7 @@ describe('resolveProjectTasks', () => {
         category: 'daily',
       },
     ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+    const result = resolveProjectTasks(definitions)
 
     expect(result.daily.map((task) => task.id)).toEqual([
       'daily_a',
@@ -179,6 +180,37 @@ describe('resolveProjectTasks', () => {
     ])
   })
 
+  it('does not throw on definitions that would fail validateProjectTaskDefinitions (e.g. unknown upstreamId, duplicate ids)', () => {
+    const definitionsWithUnknownUpstreamId: ProjectTaskDefinition[] = [
+      {
+        id: 'daily_unknown',
+        upstreamIds: ['daily_does_not_exist'],
+        label: 'Daily Unknown',
+        color: 'blue',
+        maxProgress: 1,
+        optional: false,
+        category: 'daily',
+      },
+    ]
+    expect(() =>
+      resolveProjectTasks(definitionsWithUnknownUpstreamId),
+    ).not.toThrow()
+
+    const definitionsWithDuplicateIds: ProjectTaskDefinition[] = [
+      buildDefinition(),
+      buildDefinition({
+        upstreamIds: ['daily_b'],
+        label: 'Daily B',
+        color: 'green',
+        maxProgress: 3,
+        optional: true,
+      }),
+    ]
+    expect(() => resolveProjectTasks(definitionsWithDuplicateIds)).not.toThrow()
+  })
+})
+
+describe('validateProjectTaskDefinitions', () => {
   it('throws when a definition references an unknown upstreamId', () => {
     const definitions: ProjectTaskDefinition[] = [
       {
@@ -192,7 +224,7 @@ describe('resolveProjectTasks', () => {
       },
     ]
     expect(() =>
-      resolveProjectTasks(definitions, buildUpstreamDocument()),
+      validateProjectTaskDefinitions(definitions, buildUpstreamDocument()),
     ).toThrow(/daily_does_not_exist/)
   })
 
@@ -212,7 +244,7 @@ describe('resolveProjectTasks', () => {
       },
     ]
     expect(() =>
-      resolveProjectTasks(definitions, buildUpstreamDocument()),
+      validateProjectTaskDefinitions(definitions, buildUpstreamDocument()),
     ).toThrow(/daily_does_not_exist/)
   })
 
@@ -228,7 +260,7 @@ describe('resolveProjectTasks', () => {
       }),
     ]
     expect(() =>
-      resolveProjectTasks(definitions, buildUpstreamDocument()),
+      validateProjectTaskDefinitions(definitions, buildUpstreamDocument()),
     ).toThrow()
   })
 })

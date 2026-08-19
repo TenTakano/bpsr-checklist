@@ -1,15 +1,10 @@
-import upstreamTasksDocumentRaw from './upstreamTasks.json'
-import {
-  UpstreamTasksDocumentSchema,
-  type Task,
-  type UpstreamTasksDocument,
-} from './taskSchema'
+import type { Task, UpstreamTasksDocument } from './taskSchema'
 import {
   createProjectTaskDefinitionsSchema,
   type ProjectTaskDefinition,
 } from './projectTaskSchema'
 import type { TaskCategory } from './taskLookup'
-import { PROJECT_TASKS, EXCLUDED_UPSTREAM_IDS } from './projectTasks'
+import { PROJECT_TASKS } from './projectTasks'
 
 export interface ResolvedProjectTasks {
   daily: Task[]
@@ -31,10 +26,9 @@ function validateUpstreamIdsExist(
   }
 }
 
-export function resolveProjectTasks(
-  definitions: ProjectTaskDefinition[],
+function buildUpstreamCategoryById(
   upstreamDocument: UpstreamTasksDocument,
-): ResolvedProjectTasks {
+): Map<string, TaskCategory> {
   const upstreamCategoryById = new Map<string, TaskCategory>()
   for (const task of upstreamDocument.daily) {
     upstreamCategoryById.set(task.id, 'daily')
@@ -42,14 +36,26 @@ export function resolveProjectTasks(
   for (const task of upstreamDocument.weekly) {
     upstreamCategoryById.set(task.id, 'weekly')
   }
+  return upstreamCategoryById
+}
+
+export function validateProjectTaskDefinitions(
+  definitions: ProjectTaskDefinition[],
+  upstreamDocument: UpstreamTasksDocument,
+): void {
+  const upstreamCategoryById = buildUpstreamCategoryById(upstreamDocument)
 
   validateUpstreamIdsExist(definitions, upstreamCategoryById)
 
   const definitionsSchema = createProjectTaskDefinitionsSchema(
     (upstreamId) => upstreamCategoryById.get(upstreamId) ?? null,
   )
-  const validatedDefinitions = definitionsSchema.parse(definitions)
+  definitionsSchema.parse(definitions)
+}
 
+export function resolveProjectTasks(
+  definitions: ProjectTaskDefinition[],
+): ResolvedProjectTasks {
   const daily: Task[] = []
   const weekly: Task[] = []
   const pushByCategory = (category: TaskCategory, task: Task): void => {
@@ -60,7 +66,7 @@ export function resolveProjectTasks(
     }
   }
 
-  for (const definition of validatedDefinitions) {
+  for (const definition of definitions) {
     const task: Task = {
       id: definition.id,
       label: definition.label,
@@ -120,43 +126,7 @@ export function findNonexistentExcludedUpstreamIds(
   )
 }
 
-const upstreamTasksDocument = UpstreamTasksDocumentSchema.parse(
-  upstreamTasksDocumentRaw,
-)
-
-const excludedIdsOverlappingProjectTasks =
-  findExcludedIdsOverlappingProjectTasks(PROJECT_TASKS, EXCLUDED_UPSTREAM_IDS)
-if (excludedIdsOverlappingProjectTasks.length > 0) {
-  throw new Error(
-    `EXCLUDED_UPSTREAM_IDS の以下の id が projectTasks.ts の upstreamIds と重複しています: ${excludedIdsOverlappingProjectTasks.join(', ')}`,
-  )
-}
-
-const nonexistentExcludedUpstreamIds = findNonexistentExcludedUpstreamIds(
-  EXCLUDED_UPSTREAM_IDS,
-  upstreamTasksDocument,
-)
-if (nonexistentExcludedUpstreamIds.length > 0) {
-  throw new Error(
-    `EXCLUDED_UPSTREAM_IDS の以下の id が upstreamTasks.json に存在しません: ${nonexistentExcludedUpstreamIds.join(', ')}`,
-  )
-}
-
-const unmappedUpstreamIds = findUnmappedUpstreamIds(
-  PROJECT_TASKS,
-  upstreamTasksDocument,
-  EXCLUDED_UPSTREAM_IDS,
-)
-if (unmappedUpstreamIds.length > 0) {
-  throw new Error(
-    `upstreamTasks.json の以下の id が projectTasks.ts にマッピングされていません: ${unmappedUpstreamIds.join(', ')}`,
-  )
-}
-
-const resolvedProjectTasks = resolveProjectTasks(
-  PROJECT_TASKS,
-  upstreamTasksDocument,
-)
+const resolvedProjectTasks = resolveProjectTasks(PROJECT_TASKS)
 
 export const DAILY_TASKS: Task[] = resolvedProjectTasks.daily
 export const WEEKLY_TASKS: Task[] = resolvedProjectTasks.weekly
