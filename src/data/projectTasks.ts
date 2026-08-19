@@ -1,14 +1,15 @@
 import type { ProjectTaskDefinition } from './projectTaskSchema'
 
-// Project ids drop the upstream daily_/weekly_ prefix (category is derived
-// from upstreamIds, not from the id string). This layer is the source of
-// truth for label/color/maxProgress/optional: every entry specifies them
-// explicitly, so upstreamTasks.json content changes (label wording, etc.)
-// never silently change what the app displays. See docs/task-layers.md.
+// Project ids drop the upstream daily_/weekly_ prefix. This layer is the
+// source of truth for label/color/maxProgress/optional/category: every
+// entry specifies them explicitly, so upstreamTasks.json content changes
+// (label wording, etc.) never silently change what the app displays. See
+// docs/task-layers.md.
 export const PROJECT_TASKS = [
   {
     id: 'mystery_store',
     upstreamIds: ['daily_mystery_store'],
+    category: 'daily',
     label: '🎁 Mystery Store (Buy what you want) | +1 refresh with Season Pass',
     color: 'gold',
     maxProgress: 1,
@@ -17,6 +18,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_checkin',
     upstreamIds: ['daily_guild_checkin'],
+    category: 'daily',
     label: '🏛️ Guild Check-In & Cargo (Laura & Douglas in Guild Center)',
     color: 'orange',
     maxProgress: 1,
@@ -25,6 +27,7 @@ export const PROJECT_TASKS = [
   {
     id: 'unstable_clear',
     upstreamIds: ['daily_unstable_clear'],
+    category: 'daily',
     label: '🌀 Unstable Space (Clear)',
     color: 'purple',
     maxProgress: 2,
@@ -33,6 +36,7 @@ export const PROJECT_TASKS = [
   {
     id: 'bureau_commissions',
     upstreamIds: ['daily_bureau_commissions'],
+    category: 'daily',
     label: '📋 Bureau Commissions | Can skip up to 2 days (9 Commissions)',
     color: 'green',
     maxProgress: 3,
@@ -41,6 +45,7 @@ export const PROJECT_TASKS = [
   {
     id: 'homestead_commissions',
     upstreamIds: ['daily_homestead_commissions'],
+    category: 'daily',
     label: '🏡 Homestead Commissions | Can skip up to 2 days (9 Commissions)',
     color: 'green',
     maxProgress: 3,
@@ -49,6 +54,7 @@ export const PROJECT_TASKS = [
   {
     id: 'world_boss_keys',
     upstreamIds: ['daily_world_boss_keys'],
+    category: 'daily',
     label: '🔑 World Boss Keys | Can skip up to 2 days (6 Keys)',
     color: 'brown',
     maxProgress: 2,
@@ -57,6 +63,7 @@ export const PROJECT_TASKS = [
   {
     id: 'elite_boss_keys',
     upstreamIds: ['daily_elite_boss_keys'],
+    category: 'daily',
     label: '🗝️ Elite Boss Keys | Can skip up to 2 days (6 Keys)',
     color: 'brown',
     maxProgress: 2,
@@ -65,6 +72,7 @@ export const PROJECT_TASKS = [
   {
     id: 'focus',
     upstreamIds: ['daily_focus'],
+    category: 'daily',
     label: '⭐ Life Skill Focus | Can skip up to 4 days (2000 Focus)',
     color: 'yellow',
     maxProgress: 1,
@@ -73,6 +81,7 @@ export const PROJECT_TASKS = [
   {
     id: 'season_pass_activity',
     upstreamIds: ['daily_season_pass_activity'],
+    category: 'daily',
     label: '🏆 Season Pass Activity (Earn 500 Activity Merits)',
     color: 'yellow',
     maxProgress: 1,
@@ -81,6 +90,7 @@ export const PROJECT_TASKS = [
   {
     id: 'friendship_list',
     upstreamIds: ['daily_friendship_list'],
+    category: 'daily',
     label: '🫂 Friendship List (Earn 200 Friendship List Points)',
     color: 'grey',
     maxProgress: 1,
@@ -89,6 +99,7 @@ export const PROJECT_TASKS = [
   {
     id: 'musician_challenge',
     upstreamIds: ['daily_musician_challenge'],
+    category: 'daily',
     label: '🎵 Musician (Complete the Daily Challenge)',
     color: 'grey',
     maxProgress: 1,
@@ -97,6 +108,7 @@ export const PROJECT_TASKS = [
   {
     id: 'pioneer_awards',
     upstreamIds: ['weekly_pioneer_awards'],
+    category: 'weekly',
     label: '🏅 Pioneer Awards (Stella at the Pioneer Bureau)',
     color: 'yellow',
     maxProgress: 1,
@@ -105,6 +117,7 @@ export const PROJECT_TASKS = [
   {
     id: 'reclaim_hub',
     upstreamIds: ['weekly_reclaim_hub'],
+    category: 'weekly',
     label: '⏰ Reclaim Hub (Claim missed rewards from last week)',
     color: 'gold',
     maxProgress: 1,
@@ -113,6 +126,7 @@ export const PROJECT_TASKS = [
   {
     id: 'starland_quests',
     upstreamIds: ['weekly_starland_quests'],
+    category: 'weekly',
     label: '✨ Starland (Complete the Weekly Quests)',
     color: 'blue',
     maxProgress: 1,
@@ -121,6 +135,7 @@ export const PROJECT_TASKS = [
   {
     id: 'illusion_essence',
     upstreamIds: ['weekly_illusion_essence'],
+    category: 'weekly',
     label: '🪞 Illusion-Shroud Woods (Reach the Illusion-Shroud Essence cap)',
     color: 'grey',
     maxProgress: 1,
@@ -129,6 +144,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_activity',
     upstreamIds: ['weekly_guild_activity'],
+    category: 'weekly',
     label:
       '👑 Guild Activity Rewards (Reach 7000/7000 Activity Merits & Claim Rewards)',
     color: 'orange',
@@ -138,6 +154,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_hunt',
     upstreamIds: ['weekly_guild_hunt'],
+    category: 'weekly',
     label: '🏹 Guild Hunt (Clear x2)',
     color: 'orange',
     maxProgress: 3,
@@ -146,6 +163,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_dance',
     upstreamIds: ['weekly_guild_dance'],
+    category: 'weekly',
     label: '💃 Guild Dance (Participate)',
     color: 'orange',
     maxProgress: 1,
@@ -154,6 +172,7 @@ export const PROJECT_TASKS = [
   {
     id: 'world_boss_crusade',
     upstreamIds: ['weekly_world_boss_crusade'],
+    category: 'weekly',
     label: '⚔️ World Boss Crusade (Earn 1200 Points)',
     color: 'brown',
     maxProgress: 3,
@@ -162,6 +181,7 @@ export const PROJECT_TASKS = [
   {
     id: 'dungeon_encounter',
     upstreamIds: ['weekly_dungeon_encounter'],
+    category: 'weekly',
     label: '🐷 Fight the Squeaky Boarlet (Random Dungeon Encounter)',
     color: 'grey',
     maxProgress: 5,
@@ -170,6 +190,7 @@ export const PROJECT_TASKS = [
   {
     id: 'stimen_vaults',
     upstreamIds: ['weekly_stimen_vaults'],
+    category: 'weekly',
     label: '💎 Stimen Vaults (Clear the last floor available)',
     color: 'pearl',
     maxProgress: 1,
@@ -178,6 +199,7 @@ export const PROJECT_TASKS = [
   {
     id: 'season_store_elite',
     upstreamIds: ['weekly_season_store_elite'],
+    category: 'weekly',
     label:
       '🛒 -Echoes of Ember Elite Store- (Buy Reforge Stones, Alloy & Select Boxes)',
     color: 'gold',
@@ -187,6 +209,7 @@ export const PROJECT_TASKS = [
   {
     id: 'season_store',
     upstreamIds: ['weekly_season_store'],
+    category: 'weekly',
     label: '📦 -Echoes of Ember Store- (Buy what you want)',
     color: 'grey',
     maxProgress: 1,
@@ -195,6 +218,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_store',
     upstreamIds: ['weekly_guild_store'],
+    category: 'weekly',
     label:
       '🔰 Guild Store (Buy Focus Potions, Supply Chests, Moss/Burl/Meteorite Shards)',
     color: 'gold',
@@ -204,6 +228,7 @@ export const PROJECT_TASKS = [
   {
     id: 'honor_store',
     upstreamIds: ['weekly_honor_store'],
+    category: 'weekly',
     label: '⚜️ Honor Store (Earn & Spend 10000 Honor Points)',
     color: 'gold',
     maxProgress: 1,
@@ -212,6 +237,7 @@ export const PROJECT_TASKS = [
   {
     id: 'friendship_store',
     upstreamIds: ['weekly_friendship_store'],
+    category: 'weekly',
     label: '🤝 Friendship Store (Earn 2000 Friendship Points)',
     color: 'gold',
     maxProgress: 1,
@@ -220,6 +246,7 @@ export const PROJECT_TASKS = [
   {
     id: 'event_store',
     upstreamIds: ['weekly_event_store'],
+    category: 'weekly',
     label: '🎉 Event Store (If available)',
     color: 'gold',
     maxProgress: 1,
@@ -228,6 +255,7 @@ export const PROJECT_TASKS = [
   {
     id: 'orb_store',
     upstreamIds: ['weekly_orb_store'],
+    category: 'weekly',
     label: '🔴 Orb Store (Buy what you want)',
     color: 'grey',
     maxProgress: 1,
@@ -236,6 +264,7 @@ export const PROJECT_TASKS = [
   {
     id: 'gear_exchange_store',
     upstreamIds: ['weekly_gear_exchange_store'],
+    category: 'weekly',
     label: '🔄 Gear Exchange Store (Buy Luno Pouches & Reforge Stones)',
     color: 'gold',
     maxProgress: 1,
@@ -244,6 +273,7 @@ export const PROJECT_TASKS = [
   {
     id: 'module_exchange',
     upstreamIds: ['weekly_module_exchange'],
+    category: 'weekly',
     label: '🔧 Module Exchange (Buy Excellent Modules)',
     color: 'grey',
     maxProgress: 1,
@@ -252,6 +282,7 @@ export const PROJECT_TASKS = [
   {
     id: 'sigil_store',
     upstreamIds: ['weekly_sigil_store'],
+    category: 'weekly',
     label: '🔮 Sigil Exchange Store (Buy x10 Echoes of Ember Sigil Chests)',
     color: 'gold',
     maxProgress: 1,
@@ -260,6 +291,7 @@ export const PROJECT_TASKS = [
   {
     id: 'reputation_store',
     upstreamIds: ['weekly_reputation_store'],
+    category: 'weekly',
     label: '📈 Regional Reputation Stores (Buy Will Wish Coins)',
     color: 'gold',
     maxProgress: 1,
@@ -268,6 +300,7 @@ export const PROJECT_TASKS = [
   {
     id: 's1_s2_raids',
     upstreamIds: ['weekly_s1_s2_raids'],
+    category: 'weekly',
     label:
       '🛡️ [S1-S2] Dragon Shackles or Dreambloom Raids (35220+ Ability Score)',
     color: 'dark_purple',
@@ -277,6 +310,7 @@ export const PROJECT_TASKS = [
   {
     id: 's3_raids_easy',
     upstreamIds: ['weekly_s3_raids_easy'],
+    category: 'weekly',
     label:
       '🌀 [S3] Illusions Raids -Easy- (1970+ Illusion Score | 47650+ Ability Score)',
     color: 'dark_purple',
@@ -286,6 +320,7 @@ export const PROJECT_TASKS = [
   {
     id: 's3_raids_hard',
     upstreamIds: ['weekly_s3_raids_hard'],
+    category: 'weekly',
     label:
       '🌀 [S3] Illusions Raids -Hard- (2910+ Illusion Score | 56110+ Ability Score)',
     color: 'dark_purple',
@@ -295,6 +330,7 @@ export const PROJECT_TASKS = [
   {
     id: 'musician_challenges',
     upstreamIds: ['weekly_musician_challenges'],
+    category: 'weekly',
     label: '🎶 Musician (Complete the Weekly Challenges)',
     color: 'grey',
     maxProgress: 1,

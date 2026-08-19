@@ -8,6 +8,19 @@ import {
 import type { UpstreamTasksDocument } from './taskSchema'
 import type { ProjectTaskDefinition } from './projectTaskSchema'
 
+const buildDefinition = (
+  overrides: Partial<ProjectTaskDefinition> = {},
+): ProjectTaskDefinition => ({
+  id: 'daily_a',
+  upstreamIds: ['daily_a'],
+  label: 'Daily A',
+  color: 'blue',
+  maxProgress: 2,
+  optional: false,
+  category: 'daily',
+  ...overrides,
+})
+
 const buildUpstreamDocument = (): UpstreamTasksDocument => ({
   schemaVersion: 1,
   upstreamCommit: null,
@@ -41,8 +54,16 @@ const buildUpstreamDocument = (): UpstreamTasksDocument => ({
 describe('resolveProjectTasks', () => {
   it('resolves an identity mapping to matching daily/weekly Task entries', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-      { id: 'weekly_a', upstreamIds: ['weekly_a'] },
+      buildDefinition(),
+      {
+        id: 'weekly_a',
+        upstreamIds: ['weekly_a'],
+        label: 'Weekly A',
+        color: 'gold',
+        maxProgress: 1,
+        optional: false,
+        category: 'weekly',
+      },
     ]
     const result = resolveProjectTasks(definitions, buildUpstreamDocument())
 
@@ -66,36 +87,14 @@ describe('resolveProjectTasks', () => {
     ])
   })
 
-  it('sums maxProgress across merged upstreamIds by default', () => {
+  it('uses the definition own label/color/maxProgress/optional even when they differ from the upstream task', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_merged', upstreamIds: ['daily_a', 'daily_b'] },
-    ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
-
-    expect(result.daily[0].maxProgress).toBe(5)
-  })
-
-  it('inherits label/color/optional from the first upstreamId when not overridden', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_merged', upstreamIds: ['daily_b', 'daily_a'] },
-    ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
-
-    expect(result.daily[0].label).toBe('Daily B')
-    expect(result.daily[0].color).toBe('green')
-    expect(result.daily[0].optional).toBe(true)
-  })
-
-  it('applies label/color/maxProgress/optional overrides when provided', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      {
-        id: 'daily_a',
-        upstreamIds: ['daily_a'],
+      buildDefinition({
         label: 'Overridden label',
         color: 'purple',
         maxProgress: 9,
         optional: true,
-      },
+      }),
     ]
     const result = resolveProjectTasks(definitions, buildUpstreamDocument())
 
@@ -108,6 +107,31 @@ describe('resolveProjectTasks', () => {
     })
   })
 
+  it('resolves a merge of multiple upstreamIds using the definition own explicit fields', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      {
+        id: 'daily_merged',
+        upstreamIds: ['daily_a', 'daily_b'],
+        label: 'Daily Merged',
+        color: 'blue',
+        maxProgress: 5,
+        optional: false,
+        category: 'daily',
+      },
+    ]
+    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
+
+    expect(result.daily).toEqual([
+      {
+        id: 'daily_merged',
+        label: 'Daily Merged',
+        color: 'blue',
+        maxProgress: 5,
+        optional: false,
+      },
+    ])
+  })
+
   it('resolves a project-only task (empty upstreamIds) using its explicit fields', () => {
     const definitions: ProjectTaskDefinition[] = [
       {
@@ -116,6 +140,7 @@ describe('resolveProjectTasks', () => {
         label: 'Project Only',
         color: 'purple',
         maxProgress: 3,
+        optional: true,
         category: 'weekly',
       },
     ]
@@ -127,54 +152,22 @@ describe('resolveProjectTasks', () => {
         label: 'Project Only',
         color: 'purple',
         maxProgress: 3,
-        optional: false,
+        optional: true,
       },
     ])
     expect(result.daily).toEqual([])
   })
 
-  it('defaults optional to false for a project-only task when not specified', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      {
-        id: 'project_only',
-        upstreamIds: [],
-        label: 'Project Only',
-        color: 'purple',
-        maxProgress: 1,
-        category: 'daily',
-      },
-    ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
-
-    expect(result.daily[0].optional).toBe(false)
-  })
-
-  it('applies an explicit optional: true for a project-only task', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      {
-        id: 'project_only',
-        upstreamIds: [],
-        label: 'Project Only',
-        color: 'purple',
-        maxProgress: 1,
-        category: 'daily',
-        optional: true,
-      },
-    ]
-    const result = resolveProjectTasks(definitions, buildUpstreamDocument())
-
-    expect(result.daily[0].optional).toBe(true)
-  })
-
   it('lets a project-only task (empty upstreamIds) coexist with merge/split entries without tripping their cross validations', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
+      buildDefinition(),
       {
         id: 'project_only',
         upstreamIds: [],
         label: 'Project Only',
         color: 'purple',
         maxProgress: 1,
+        optional: false,
         category: 'daily',
       },
     ]
@@ -188,7 +181,35 @@ describe('resolveProjectTasks', () => {
 
   it('throws when a definition references an unknown upstreamId', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_unknown', upstreamIds: ['daily_does_not_exist'] },
+      {
+        id: 'daily_unknown',
+        upstreamIds: ['daily_does_not_exist'],
+        label: 'Daily Unknown',
+        color: 'blue',
+        maxProgress: 1,
+        optional: false,
+        category: 'daily',
+      },
+    ]
+    expect(() =>
+      resolveProjectTasks(definitions, buildUpstreamDocument()),
+    ).toThrow(/daily_does_not_exist/)
+  })
+
+  it('reports the unknown-upstreamId error before the category-mismatch error when a definition has both problems', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      {
+        id: 'daily_bad',
+        upstreamIds: ['daily_a', 'daily_does_not_exist'],
+        label: 'Daily Bad',
+        color: 'blue',
+        maxProgress: 2,
+        optional: false,
+        // Mismatches daily_a's resolved category ('daily') too, so this
+        // definition is invalid for two reasons: the reference-integrity
+        // check must win and report the unknown upstreamId.
+        category: 'weekly',
+      },
     ]
     expect(() =>
       resolveProjectTasks(definitions, buildUpstreamDocument()),
@@ -197,8 +218,14 @@ describe('resolveProjectTasks', () => {
 
   it('throws when the definitions violate structural invariants (e.g. duplicate ids)', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-      { id: 'daily_a', upstreamIds: ['daily_b'] },
+      buildDefinition(),
+      buildDefinition({
+        upstreamIds: ['daily_b'],
+        label: 'Daily B',
+        color: 'green',
+        maxProgress: 3,
+        optional: true,
+      }),
     ]
     expect(() =>
       resolveProjectTasks(definitions, buildUpstreamDocument()),
@@ -209,9 +236,13 @@ describe('resolveProjectTasks', () => {
 describe('findUnmappedUpstreamIds', () => {
   it('returns an empty array when every upstream task is referenced', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-      { id: 'daily_b', upstreamIds: ['daily_b'] },
-      { id: 'weekly_a', upstreamIds: ['weekly_a'] },
+      buildDefinition(),
+      buildDefinition({ id: 'daily_b', upstreamIds: ['daily_b'] }),
+      buildDefinition({
+        id: 'weekly_a',
+        upstreamIds: ['weekly_a'],
+        category: 'weekly',
+      }),
     ]
     expect(
       findUnmappedUpstreamIds(definitions, buildUpstreamDocument()),
@@ -220,8 +251,12 @@ describe('findUnmappedUpstreamIds', () => {
 
   it('returns upstream ids that no definition references (e.g. missing mapping for a new upstream task)', () => {
     const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-      { id: 'weekly_a', upstreamIds: ['weekly_a'] },
+      buildDefinition(),
+      buildDefinition({
+        id: 'weekly_a',
+        upstreamIds: ['weekly_a'],
+        category: 'weekly',
+      }),
     ]
     expect(
       findUnmappedUpstreamIds(definitions, buildUpstreamDocument()),
@@ -229,9 +264,7 @@ describe('findUnmappedUpstreamIds', () => {
   })
 
   it('excludes ids listed in excludedUpstreamIds from the unmapped result, without hiding other unmapped ids', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-    ]
+    const definitions: ProjectTaskDefinition[] = [buildDefinition()]
     expect(
       findUnmappedUpstreamIds(definitions, buildUpstreamDocument(), [
         'daily_b',
@@ -242,18 +275,14 @@ describe('findUnmappedUpstreamIds', () => {
 
 describe('findExcludedIdsOverlappingProjectTasks', () => {
   it('returns an empty array when no excluded id is referenced by any definition', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-    ]
+    const definitions: ProjectTaskDefinition[] = [buildDefinition()]
     expect(
       findExcludedIdsOverlappingProjectTasks(definitions, ['daily_b']),
     ).toEqual([])
   })
 
   it('returns excluded ids that a definition still references', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      { id: 'daily_a', upstreamIds: ['daily_a'] },
-    ]
+    const definitions: ProjectTaskDefinition[] = [buildDefinition()]
     expect(
       findExcludedIdsOverlappingProjectTasks(definitions, ['daily_a']),
     ).toEqual(['daily_a'])

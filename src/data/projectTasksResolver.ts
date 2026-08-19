@@ -16,20 +16,34 @@ export interface ResolvedProjectTasks {
   weekly: Task[]
 }
 
+function validateUpstreamIdsExist(
+  definitions: ProjectTaskDefinition[],
+  upstreamCategoryById: Map<string, TaskCategory>,
+): void {
+  for (const definition of definitions) {
+    for (const upstreamId of definition.upstreamIds) {
+      if (!upstreamCategoryById.has(upstreamId)) {
+        throw new Error(
+          `プロジェクトタスク ${definition.id} が参照する upstreamId "${upstreamId}" が upstreamTasks.json に存在しません`,
+        )
+      }
+    }
+  }
+}
+
 export function resolveProjectTasks(
   definitions: ProjectTaskDefinition[],
   upstreamDocument: UpstreamTasksDocument,
 ): ResolvedProjectTasks {
-  const upstreamTaskById = new Map<string, Task>()
   const upstreamCategoryById = new Map<string, TaskCategory>()
   for (const task of upstreamDocument.daily) {
-    upstreamTaskById.set(task.id, task)
     upstreamCategoryById.set(task.id, 'daily')
   }
   for (const task of upstreamDocument.weekly) {
-    upstreamTaskById.set(task.id, task)
     upstreamCategoryById.set(task.id, 'weekly')
   }
+
+  validateUpstreamIdsExist(definitions, upstreamCategoryById)
 
   const definitionsSchema = createProjectTaskDefinitionsSchema(
     (upstreamId) => upstreamCategoryById.get(upstreamId) ?? null,
@@ -47,61 +61,14 @@ export function resolveProjectTasks(
   }
 
   for (const definition of validatedDefinitions) {
-    const isProjectOnly = definition.upstreamIds.length === 0
-
-    if (isProjectOnly) {
-      const { category, label, color, maxProgress } = definition
-      if (
-        category === undefined ||
-        label === undefined ||
-        color === undefined ||
-        maxProgress === undefined
-      ) {
-        throw new Error(
-          `プロジェクトタスク ${definition.id} の label/color/maxProgress/category を解決できません`,
-        )
-      }
-
-      const resolvedTask: Task = {
-        id: definition.id,
-        label,
-        color,
-        maxProgress,
-        optional: definition.optional ?? false,
-      }
-
-      pushByCategory(category, resolvedTask)
-      continue
-    }
-
-    const upstreamTasks = definition.upstreamIds.map((upstreamId) => {
-      const upstreamTask = upstreamTaskById.get(upstreamId)
-      if (upstreamTask === undefined) {
-        throw new Error(
-          `プロジェクトタスク ${definition.id} が参照する upstreamId "${upstreamId}" が upstreamTasks.json に存在しません`,
-        )
-      }
-      return upstreamTask
-    })
-    const primaryUpstreamTask = upstreamTasks[0]
-    const category = upstreamCategoryById.get(definition.upstreamIds[0])
-    if (category === undefined) {
-      throw new Error(
-        `プロジェクトタスク ${definition.id} の daily/weekly カテゴリを解決できません`,
-      )
-    }
-
-    const resolvedTask: Task = {
+    const task: Task = {
       id: definition.id,
-      label: definition.label ?? primaryUpstreamTask.label,
-      color: definition.color ?? primaryUpstreamTask.color,
-      maxProgress:
-        definition.maxProgress ??
-        upstreamTasks.reduce((sum, task) => sum + task.maxProgress, 0),
-      optional: definition.optional ?? primaryUpstreamTask.optional,
+      label: definition.label,
+      color: definition.color,
+      maxProgress: definition.maxProgress,
+      optional: definition.optional,
     }
-
-    pushByCategory(category, resolvedTask)
+    pushByCategory(definition.category, task)
   }
 
   return { daily, weekly }
