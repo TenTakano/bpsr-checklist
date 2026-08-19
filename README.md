@@ -35,7 +35,7 @@ upstream のタスクが追加・削除された際の手順:
 
 - タスク id の追加・削除を怠ると `src/data/taskLabel.test.ts` のテストが失敗します
 - id が変わらずラベル文言のみが変更された場合、このテストでは検出されません
-- `projectTasks.ts` へのエントリ追加漏れ・除去漏れがあると、`src/data/projectTasksResolver.ts` のモジュール初期化時に未マッピングの upstream id や存在しない `upstreamIds` を検出して例外を投げるため、`pnpm test` が失敗します
+- `projectTasks.ts` へのエントリ追加漏れ・除去漏れがあると、`src/data/projectTasks.test.ts` の実データ整合性テストが未マッピングの upstream id や存在しない `upstreamIds` を検出して失敗するため、`pnpm test` が失敗します
 - タスク定義がミラーリングレイヤーとプロジェクトレイヤーに分かれている設計の詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください
 
 ### upstream に無いタスクを追加する場合
