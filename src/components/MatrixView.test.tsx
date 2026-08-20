@@ -1,3 +1,4 @@
+import { useReducer } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   cleanup,
@@ -16,7 +17,9 @@ import {
 } from '../test/fixtures'
 import { moveTask, setProgress } from '../store/actions'
 import { StoreContext, type StoreContextValue } from '../store/context'
+import { reducer } from '../store/reducer'
 import type { Character } from '../store/schema'
+import type { Store } from '../store/types'
 import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
 import { MatrixView } from './MatrixView'
 
@@ -51,6 +54,33 @@ const renderWithContext = (overrides: Partial<StoreContextValue> = {}) => {
     </StoreContext.Provider>,
   )
   return { dispatch, onOpenTaskVisibility }
+}
+
+// Focus-retention after a keyboard reorder depends on the row actually
+// changing position, which the mocked dispatch above never does. This wires
+// up the real reducer so the resulting order change is genuine.
+const StatefulMatrixView = ({ initialStore }: { initialStore: Store }) => {
+  const [store, dispatch] = useReducer(reducer, initialStore)
+  const value: StoreContextValue = {
+    store,
+    status: 'ok',
+    message: null,
+    dispatch,
+  }
+  return (
+    <StoreContext.Provider value={value}>
+      <MatrixView onOpenTaskVisibility={vi.fn()} />
+    </StoreContext.Provider>
+  )
+}
+
+const getSection = (title: string) => {
+  const heading = screen.getByRole('heading', { name: title })
+  const section = heading.closest('.matrix-section')
+  if (section === null) {
+    throw new Error(`section not found for title: ${title}`)
+  }
+  return section as HTMLElement
 }
 
 const secondCharacter: Character = {
@@ -96,7 +126,7 @@ const getRowByLabel = (label: string) => {
 const getDragHandle = (label: string) => {
   const row = getRowByLabel(label)
   return within(row).getByRole('button', {
-    name: `${label} をドラッグして並べ替え`,
+    name: `${label} をドラッグまたは矢印キーで並べ替え`,
   })
 }
 
@@ -430,6 +460,129 @@ describe('MatrixView / hidden tasks', () => {
   })
 })
 
+describe('MatrixView / handle column header', () => {
+  it('gives the empty sort-handle column header hidden text for screen readers', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    const hiddenText = within(getSection('デイリー')).getByText('並べ替え')
+    expect(hiddenText).toHaveClass('visually-hidden')
+    expect(hiddenText.closest('th')).toHaveClass('matrix-handle-header')
+  })
+})
+
+describe('MatrixView / keyboard reordering', () => {
+  const dailyIds = DAILY_TASKS.map((task) => task.id)
+
+  it('dispatches moveTask to the next visible row and announces the move on ArrowDown', () => {
+    const label = getTaskLabel(DAILY_TASKS[0])
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const handle = getDragHandle(label)
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[0], 1))
+    expect(
+      within(getSection('デイリー')).getByRole('status'),
+    ).toHaveTextContent(`${label} を1つ下に移動しました`)
+  })
+
+  it('dispatches moveTask to the previous visible row and announces the move on ArrowUp', () => {
+    const label = getTaskLabel(DAILY_TASKS[1])
+    const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+    const handle = getDragHandle(label)
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowUp' })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[1], 0))
+    expect(
+      within(getSection('デイリー')).getByRole('status'),
+    ).toHaveTextContent(`${label} を1つ上に移動しました`)
+  })
+
+  it.each([
+    { name: 'ArrowUp on the first row', taskIndex: 0, key: 'ArrowUp' },
+    {
+      name: 'ArrowDown on the last row',
+      taskIndex: dailyIds.length - 1,
+      key: 'ArrowDown',
+    },
+  ])(
+    'does not dispatch but still suppresses the default key action at the boundary ($name)',
+    ({ taskIndex, key }) => {
+      const { dispatch } = renderWithContext({ store: storeWithCharacter() })
+      const handle = getDragHandle(getTaskLabel(DAILY_TASKS[taskIndex]))
+      handle.focus()
+
+      const wasNotPrevented = fireEvent.keyDown(handle, { key })
+
+      expect(dispatch).not.toHaveBeenCalled()
+      expect(wasNotPrevented).toBe(false)
+    },
+  )
+
+  it('anchors the move target to the full taskOrder index across a hidden task', () => {
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: [dailyIds[1]] }),
+    })
+    const handle = getDragHandle(getTaskLabel(DAILY_TASKS[2]))
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowUp' })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[2], 0))
+  })
+
+  it('keeps focus on the same task handle after a real reorder', () => {
+    render(<StatefulMatrixView initialStore={storeWithCharacter()} />)
+    const label = getTaskLabel(DAILY_TASKS[0])
+    const handle = getDragHandle(label)
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' })
+
+    expect(document.activeElement).toBe(getDragHandle(label))
+    const rowHeaders = within(getSection('デイリー')).getAllByRole('rowheader')
+    expect(rowHeaders[0]).toHaveAttribute('title', getTaskLabel(DAILY_TASKS[1]))
+  })
+
+  it('keeps focus on the same task handle and announces each move across two consecutive reorders', () => {
+    render(<StatefulMatrixView initialStore={storeWithCharacter()} />)
+    const label = getTaskLabel(DAILY_TASKS[0])
+    const handle = getDragHandle(label)
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' })
+    fireEvent.keyDown(getDragHandle(label), { key: 'ArrowDown' })
+
+    expect(document.activeElement).toBe(getDragHandle(label))
+    const rowHeaders = within(getSection('デイリー')).getAllByRole('rowheader')
+    expect(rowHeaders[2]).toHaveAttribute('title', getTaskLabel(DAILY_TASKS[0]))
+    const announcement = within(getSection('デイリー')).getByRole('status')
+    expect(announcement).toHaveTextContent(`${label} を1つ下に移動しました`)
+  })
+
+  it('changes the aria-live text on consecutive same-direction moves so screen readers re-announce it', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    const label = getTaskLabel(DAILY_TASKS[0])
+    const handle = getDragHandle(label)
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' })
+    const firstAnnouncement = within(getSection('デイリー')).getByRole(
+      'status',
+    ).textContent
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' })
+    const secondAnnouncement = within(getSection('デイリー')).getByRole(
+      'status',
+    ).textContent
+
+    expect(secondAnnouncement).not.toBe(firstAnnouncement)
+    expect(secondAnnouncement).toContain(`${label} を1つ下に移動しました`)
+  })
+})
+
 describe('MatrixView / completed task accordion', () => {
   it('does not render the accordion toggle when no visible task is complete for every displayed character', () => {
     renderWithContext({ store: storeWithCharacter() })
@@ -454,7 +607,7 @@ describe('MatrixView / completed task accordion', () => {
     expect(screen.getByTitle(label)).toBeInTheDocument()
     expect(
       within(getRowByLabel(label)).queryByRole('button', {
-        name: `${label} をドラッグして並べ替え`,
+        name: `${label} をドラッグまたは矢印キーで並べ替え`,
       }),
     ).not.toBeInTheDocument()
     expect(dispatch).not.toHaveBeenCalled()
@@ -640,7 +793,7 @@ describe('MatrixView / readonly mode', () => {
       status: 'readonly',
     })
     const handles = screen.getAllByRole('button', {
-      name: /をドラッグして並べ替え$/,
+      name: /をドラッグまたは矢印キーで並べ替え$/,
     })
     expect(handles.length).toBeGreaterThan(0)
     for (const handle of handles) {

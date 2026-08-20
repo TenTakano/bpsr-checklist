@@ -1,4 +1,12 @@
-import { useMemo, useState, type DragEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+} from 'react'
 import { resolveTaskColor } from '../data/taskColors'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
@@ -130,34 +138,89 @@ function MatrixSection({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
   const [isCompletedGroupOpen, setIsCompletedGroupOpen] = useState(false)
+  const [reorderAnnouncement, setReorderAnnouncement] = useState('')
+  const handleRefs = useRef(new Map<string, HTMLButtonElement>())
+  // Set alongside the moveTask dispatch (never inside the effect below) so
+  // the effect only reads/clears it, avoiding a setState-in-effect cascade.
+  const pendingFocusTaskIdRef = useRef<string | null>(null)
+  // Alternates on every reorder announcement so two consecutive moves in the
+  // same direction never produce identical aria-live text; screen readers
+  // skip re-announcing a live region whose content didn't change.
+  const announceWithMarkerRef = useRef(false)
 
   // A row is complete only once every currently displayed character has
   // completed it; this deliberately ignores any notion of an "active"
   // character.
-  const isRowComplete = (task: Task) =>
-    characters.every((character) =>
-      isTaskComplete(
-        readProgressValue(progress, character.id, task.id),
-        task.maxProgress,
+  const isRowComplete = useCallback(
+    (task: Task) =>
+      characters.every((character) =>
+        isTaskComplete(
+          readProgressValue(progress, character.id, task.id),
+          task.maxProgress,
+        ),
       ),
-    )
+    [characters, progress],
+  )
 
   // Index reflects the position within the full taskOrder (orderedTasks),
   // matching the hidden-task handling below: filtering here is for display
   // only, drag-and-drop index math stays anchored to the unfiltered order.
-  const visibleTaskEntries = orderedTasks
-    .map((task, index) => ({ task, index }))
-    .filter(({ task }) => !hiddenTaskIdSet.has(task.id))
-  const normalTaskEntries = visibleTaskEntries.filter(
-    ({ task }) => !isRowComplete(task),
+  const visibleTaskEntries = useMemo(
+    () =>
+      orderedTasks
+        .map((task, index) => ({ task, index }))
+        .filter(({ task }) => !hiddenTaskIdSet.has(task.id)),
+    [orderedTasks, hiddenTaskIdSet],
   )
-  const completedTaskEntries = visibleTaskEntries.filter(({ task }) =>
-    isRowComplete(task),
+  const normalTaskEntries = useMemo(
+    () => visibleTaskEntries.filter(({ task }) => !isRowComplete(task)),
+    [visibleTaskEntries, isRowComplete],
+  )
+  const completedTaskEntries = useMemo(
+    () => visibleTaskEntries.filter(({ task }) => isRowComplete(task)),
+    [visibleTaskEntries, isRowComplete],
   )
 
   const handleMove = (taskId: string, toIndex: number) => {
     dispatch(moveTask(section, taskId, toIndex))
   }
+
+  // Reordering re-sorts normalTaskEntries, so React remounts/moves the
+  // dragged handle's tr and it can lose focus. Re-focus it once the new
+  // order has rendered; normalTaskEntries is memoized on the underlying
+  // order/visibility/progress state, so a real move always yields a new
+  // reference here and reliably re-runs this effect, even when the same
+  // task is moved again immediately after.
+  useEffect(() => {
+    const taskId = pendingFocusTaskIdRef.current
+    if (taskId === null) {
+      return
+    }
+    handleRefs.current.get(taskId)?.focus()
+    pendingFocusTaskIdRef.current = null
+  }, [normalTaskEntries])
+
+  const handleReorderKeyDown =
+    (task: Task, label: string, position: number) =>
+    (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+        return
+      }
+      event.preventDefault()
+      const direction = event.key === 'ArrowUp' ? -1 : 1
+      const targetPosition = position + direction
+      if (targetPosition < 0 || targetPosition >= normalTaskEntries.length) {
+        return
+      }
+      const targetEntry = normalTaskEntries[targetPosition]
+      handleMove(task.id, targetEntry.index)
+      pendingFocusTaskIdRef.current = task.id
+      announceWithMarkerRef.current = !announceWithMarkerRef.current
+      const message = `${label} を${direction < 0 ? '1つ上' : '1つ下'}に移動しました`
+      setReorderAnnouncement(
+        announceWithMarkerRef.current ? `${message}\u200b` : message,
+      )
+    }
 
   const handleDragStart =
     (taskId: string, index: number) =>
@@ -204,6 +267,9 @@ function MatrixSection({
     task: Task,
     index: number,
     isCompletedRow: boolean,
+    // undefined for completed rows: they render no reorder handle, so
+    // there is no position for handleReorderKeyDown to move relative to.
+    position: number | undefined,
   ) => {
     const label = getTaskLabel(task)
     const { primary, note } = splitTaskLabel(label)
@@ -231,15 +297,23 @@ function MatrixSection({
         onDrop={isCompletedRow ? undefined : handleDrop(task.id, index)}
       >
         <td className="matrix-handle-cell">
-          {!isCompletedRow && (
+          {!isCompletedRow && position !== undefined && (
             <button
               type="button"
+              ref={(element) => {
+                if (element) {
+                  handleRefs.current.set(task.id, element)
+                } else {
+                  handleRefs.current.delete(task.id)
+                }
+              }}
               className="matrix-handle"
-              aria-label={`${label} をドラッグして並べ替え`}
+              aria-label={`${label} をドラッグまたは矢印キーで並べ替え`}
               draggable={!isReadOnly}
               disabled={isReadOnly}
               onDragStart={handleDragStart(task.id, index)}
               onDragEnd={handleDragEnd}
+              onKeyDown={handleReorderKeyDown(task, label, position)}
             >
               <span aria-hidden="true">⠿</span>
             </button>
@@ -293,11 +367,16 @@ function MatrixSection({
         total={summary.total}
         onOpenTaskVisibility={onOpenTaskVisibility}
       />
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {reorderAnnouncement}
+      </p>
       <div className="matrix-scroll">
         <table className="matrix-table">
           <thead>
             <tr>
-              <th scope="col" className="matrix-handle-header" />
+              <th scope="col" className="matrix-handle-header">
+                <span className="visually-hidden">並べ替え</span>
+              </th>
               <th scope="col" className="matrix-corner-cell">
                 タスク
               </th>
@@ -316,8 +395,8 @@ function MatrixSection({
             </tr>
           </thead>
           <tbody>
-            {normalTaskEntries.map(({ task, index }) =>
-              renderTaskRow(task, index, false),
+            {normalTaskEntries.map(({ task, index }, position) =>
+              renderTaskRow(task, index, false, position),
             )}
           </tbody>
           {completedTaskEntries.length > 0 && (
@@ -344,7 +423,7 @@ function MatrixSection({
               </tr>
               {isCompletedGroupOpen &&
                 completedTaskEntries.map(({ task, index }) =>
-                  renderTaskRow(task, index, true),
+                  renderTaskRow(task, index, true, undefined),
                 )}
             </tbody>
           )}
