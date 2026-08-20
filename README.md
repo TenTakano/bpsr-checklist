@@ -47,6 +47,10 @@ upstream のタスクが追加・削除された際の手順:
 
 独自タスクの必須フィールドの詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください。
 
+### upstream 定期同期 workflow
+
+上記の手動更新手順を日次で自動実行する GitHub Actions workflow を用意しています。動作概要・必要なリポジトリ設定は [docs/upstream-sync.md](docs/upstream-sync.md) を参照してください。
+
 ## 開発
 
 Node.js は `^22.13.0 || >=24` が必要です。パッケージマネージャは pnpm を使用します。
