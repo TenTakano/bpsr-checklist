@@ -1,23 +1,21 @@
-import type { Task, UpstreamTasksDocument } from './taskSchema'
+import type { UpstreamTasksDocument } from './taskSchema'
 import {
   createProjectTaskDefinitionsSchema,
+  type ProjectTask,
   type ProjectTaskDefinition,
 } from './projectTaskSchema'
-import type { TaskCategory } from './taskLookup'
+import { RESET_CYCLES, type ResetCycle } from './resetCycle'
 import { PROJECT_TASKS } from './projectTasks'
 
-export interface ResolvedProjectTasks {
-  daily: Task[]
-  weekly: Task[]
-}
+export type ResolvedProjectTasks = Record<ResetCycle, ProjectTask[]>
 
 function validateUpstreamIdsExist(
   definitions: ProjectTaskDefinition[],
-  upstreamCategoryById: Map<string, TaskCategory>,
+  upstreamCycleById: Map<string, ResetCycle>,
 ): void {
   for (const definition of definitions) {
     for (const upstreamId of definition.upstreamIds) {
-      if (!upstreamCategoryById.has(upstreamId)) {
+      if (!upstreamCycleById.has(upstreamId)) {
         throw new Error(
           `プロジェクトタスク ${definition.id} が参照する upstreamId "${upstreamId}" が upstreamTasks.json に存在しません`,
         )
@@ -26,58 +24,62 @@ function validateUpstreamIdsExist(
   }
 }
 
-function buildUpstreamCategoryById(
+function buildUpstreamCycleById(
   upstreamDocument: UpstreamTasksDocument,
-): Map<string, TaskCategory> {
-  const upstreamCategoryById = new Map<string, TaskCategory>()
+): Map<string, ResetCycle> {
+  const upstreamCycleById = new Map<string, ResetCycle>()
   for (const task of upstreamDocument.daily) {
-    upstreamCategoryById.set(task.id, 'daily')
+    upstreamCycleById.set(task.id, 'daily')
   }
   for (const task of upstreamDocument.weekly) {
-    upstreamCategoryById.set(task.id, 'weekly')
+    upstreamCycleById.set(task.id, 'weekly')
   }
-  return upstreamCategoryById
+  return upstreamCycleById
 }
 
 export function validateProjectTaskDefinitions(
   definitions: ProjectTaskDefinition[],
   upstreamDocument: UpstreamTasksDocument,
+  resetCycleOverrideIds: string[] = [],
 ): void {
-  const upstreamCategoryById = buildUpstreamCategoryById(upstreamDocument)
+  const upstreamCycleById = buildUpstreamCycleById(upstreamDocument)
 
-  validateUpstreamIdsExist(definitions, upstreamCategoryById)
+  validateUpstreamIdsExist(definitions, upstreamCycleById)
 
   const definitionsSchema = createProjectTaskDefinitionsSchema(
-    (upstreamId) => upstreamCategoryById.get(upstreamId) ?? null,
+    (upstreamId) => upstreamCycleById.get(upstreamId) ?? null,
+    new Set(resetCycleOverrideIds),
   )
   definitionsSchema.parse(definitions)
+}
+
+// Kept separate from code paths that read resetCycle directly, so the
+// display section can diverge from resetCycle later by changing only this
+// function. See docs/task-layers.md ("表示セクションと resetCycle の分離").
+function sectionOf(definition: ProjectTaskDefinition): ResetCycle {
+  return definition.resetCycle
 }
 
 export function resolveProjectTasks(
   definitions: ProjectTaskDefinition[],
 ): ResolvedProjectTasks {
-  const daily: Task[] = []
-  const weekly: Task[] = []
-  const pushByCategory = (category: TaskCategory, task: Task): void => {
-    if (category === 'daily') {
-      daily.push(task)
-    } else {
-      weekly.push(task)
-    }
-  }
+  const resolved = Object.fromEntries(
+    RESET_CYCLES.map((cycle) => [cycle, [] as ProjectTask[]]),
+  ) as ResolvedProjectTasks
 
   for (const definition of definitions) {
-    const task: Task = {
+    const task: ProjectTask = {
       id: definition.id,
       label: definition.label,
       color: definition.color,
       maxProgress: definition.maxProgress,
       optional: definition.optional,
+      resetCycle: definition.resetCycle,
     }
-    pushByCategory(definition.category, task)
+    resolved[sectionOf(definition)].push(task)
   }
 
-  return { daily, weekly }
+  return resolved
 }
 
 function collectReferencedUpstreamIds(
@@ -128,5 +130,5 @@ export function findNonexistentExcludedUpstreamIds(
 
 const resolvedProjectTasks = resolveProjectTasks(PROJECT_TASKS)
 
-export const DAILY_TASKS: Task[] = resolvedProjectTasks.daily
-export const WEEKLY_TASKS: Task[] = resolvedProjectTasks.weekly
+export const PROJECT_TASKS_BY_RESET_CYCLE: ResolvedProjectTasks =
+  resolvedProjectTasks

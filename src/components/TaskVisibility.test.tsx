@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { DAILY_TASKS } from '../data/projectTasksResolver'
+import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
 import { getTaskLabel } from '../data/taskLabel'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import { setTaskDetailedCount, setTaskHidden } from '../store/actions'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import { TaskVisibility } from './TaskVisibility'
 
+const DAILY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.daily
 const DAILY_TASK_ID = DAILY_TASKS[0].id
 const DAILY_TASK_LABEL = getTaskLabel(DAILY_TASKS[0])
 if (DAILY_TASKS[0].maxProgress !== 1) {

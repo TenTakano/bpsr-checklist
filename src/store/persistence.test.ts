@@ -287,8 +287,8 @@ describe('loadStore', () => {
     const store = storeWithCharacter({
       progress: {},
       resetState: {
-        dailyPeriodStart: '2026-01-01T19:00:00.000Z',
-        weeklyPeriodStart: '2025-12-28T19:00:00.000Z',
+        daily: '2026-01-01T19:00:00.000Z',
+        weekly: '2025-12-28T19:00:00.000Z',
       },
     })
     const saveResult = saveStore(store)
@@ -318,7 +318,7 @@ describe('loadStore', () => {
     }
   })
 
-  it('falls back to an absent resetState (without wiping the rest of the store) when dailyPeriodStart is not a valid date string', () => {
+  it('falls back to an absent resetState (without wiping the rest of the store) when daily is not a valid date string', () => {
     const raw = JSON.stringify({
       schemaVersion: 1,
       taskDataVersion: 'commit-1',
@@ -327,8 +327,8 @@ describe('loadStore', () => {
       ],
       progress: { 'char-1': { daily_a: 2 } },
       resetState: {
-        dailyPeriodStart: 'not-a-date',
-        weeklyPeriodStart: '2025-12-28T19:00:00.000Z',
+        daily: 'not-a-date',
+        weekly: '2025-12-28T19:00:00.000Z',
       },
     })
     localStorage.setItem(STORAGE_KEY, raw)
@@ -349,7 +349,7 @@ describe('loadStore', () => {
       taskDataVersion: 'commit-1',
       characters: [],
       progress: {},
-      resetState: { dailyPeriodStart: '2026-01-01T19:00:00.000Z' },
+      resetState: { daily: '2026-01-01T19:00:00.000Z' },
     })
     localStorage.setItem(STORAGE_KEY, raw)
 
@@ -458,8 +458,8 @@ describe('loadStore', () => {
       characters: [],
       progress: {},
       resetState: {
-        dailyPeriodStart: '2999-01-01T19:00:00.000Z',
-        weeklyPeriodStart: '2999-01-01T19:00:00.000Z',
+        daily: '2999-01-01T19:00:00.000Z',
+        weekly: '2999-01-01T19:00:00.000Z',
       },
     })
     localStorage.setItem(STORAGE_KEY, raw)
@@ -469,8 +469,8 @@ describe('loadStore', () => {
     expect(result.status).toBe('ok')
     if (result.status === 'ok') {
       expect(result.store.resetState).toEqual({
-        dailyPeriodStart: '2999-01-01T19:00:00.000Z',
-        weeklyPeriodStart: '2999-01-01T19:00:00.000Z',
+        daily: '2999-01-01T19:00:00.000Z',
+        weekly: '2999-01-01T19:00:00.000Z',
       })
     }
   })

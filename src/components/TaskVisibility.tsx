@@ -1,7 +1,8 @@
 import { getTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
-import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
-import type { Task } from '../data/taskSchema'
+import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
+import type { ProjectTask } from '../data/projectTaskSchema'
+import { TASK_SECTIONS } from '../data/taskSections'
 import { setTaskDetailedCount, setTaskHidden } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 
@@ -16,24 +17,18 @@ export function TaskVisibility() {
   return (
     <section aria-label="タスク表示" className="task-visibility">
       <h3 className="modal-section-title">タスク表示</h3>
-      <TaskVisibilitySection
-        title="デイリー"
-        category="daily"
-        tasks={DAILY_TASKS}
-        hiddenTaskIds={hiddenTaskIds}
-        detailedCountTaskIds={detailedCountTaskIds}
-        isReadOnly={isReadOnly}
-        dispatch={dispatch}
-      />
-      <TaskVisibilitySection
-        title="ウィークリー"
-        category="weekly"
-        tasks={WEEKLY_TASKS}
-        hiddenTaskIds={hiddenTaskIds}
-        detailedCountTaskIds={detailedCountTaskIds}
-        isReadOnly={isReadOnly}
-        dispatch={dispatch}
-      />
+      {TASK_SECTIONS.map(({ title, cycle }) => (
+        <TaskVisibilitySection
+          key={cycle}
+          title={title}
+          category={cycle}
+          tasks={PROJECT_TASKS_BY_RESET_CYCLE[cycle]}
+          hiddenTaskIds={hiddenTaskIds}
+          detailedCountTaskIds={detailedCountTaskIds}
+          isReadOnly={isReadOnly}
+          dispatch={dispatch}
+        />
+      ))}
     </section>
   )
 }
@@ -41,7 +36,7 @@ export function TaskVisibility() {
 interface TaskVisibilitySectionProps {
   title: string
   category: TaskCategory
-  tasks: Task[]
+  tasks: ProjectTask[]
   hiddenTaskIds: Set<string>
   detailedCountTaskIds: Set<string>
   isReadOnly: boolean
@@ -104,7 +99,7 @@ function TaskVisibilitySection({
 }
 
 interface TaskDetailedCountToggleProps {
-  task: Task
+  task: ProjectTask
   label: string
   isChecked: boolean
   isReadOnly: boolean
