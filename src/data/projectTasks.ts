@@ -88,15 +88,6 @@ export const PROJECT_TASKS = [
     optional: false,
   },
   {
-    id: 'friendship_list',
-    upstreamIds: ['daily_friendship_list'],
-    category: 'daily',
-    label: '🫂 Friendship List (Earn 200 Friendship List Points)',
-    color: 'grey',
-    maxProgress: 1,
-    optional: true,
-  },
-  {
     id: 'musician_challenge',
     upstreamIds: ['daily_musician_challenge'],
     category: 'daily',
@@ -226,15 +217,6 @@ export const PROJECT_TASKS = [
     optional: false,
   },
   {
-    id: 'honor_store',
-    upstreamIds: ['weekly_honor_store'],
-    category: 'weekly',
-    label: '⚜️ Honor Store (Earn & Spend 10000 Honor Points)',
-    color: 'gold',
-    maxProgress: 1,
-    optional: false,
-  },
-  {
     id: 'friendship_store',
     upstreamIds: ['weekly_friendship_store'],
     category: 'weekly',
@@ -271,24 +253,6 @@ export const PROJECT_TASKS = [
     optional: false,
   },
   {
-    id: 'module_exchange',
-    upstreamIds: ['weekly_module_exchange'],
-    category: 'weekly',
-    label: '🔧 Module Exchange (Buy Excellent Modules)',
-    color: 'grey',
-    maxProgress: 1,
-    optional: true,
-  },
-  {
-    id: 'sigil_store',
-    upstreamIds: ['weekly_sigil_store'],
-    category: 'weekly',
-    label: '🔮 Sigil Exchange Store (Buy x10 Echoes of Ember Sigil Chests)',
-    color: 'gold',
-    maxProgress: 1,
-    optional: false,
-  },
-  {
     id: 'reputation_store',
     upstreamIds: ['weekly_reputation_store'],
     category: 'weekly',
@@ -298,11 +262,19 @@ export const PROJECT_TASKS = [
     optional: false,
   },
   {
-    id: 's1_s2_raids',
+    id: 's1_raid',
     upstreamIds: ['weekly_s1_s2_raids'],
     category: 'weekly',
-    label:
-      '🛡️ [S1-S2] Dragon Shackles or Dreambloom Raids (35220+ Ability Score)',
+    label: '🛡️ S1 Raid (35220+ Ability Score)',
+    color: 'dark_purple',
+    maxProgress: 3,
+    optional: false,
+  },
+  {
+    id: 's2_raid',
+    upstreamIds: ['weekly_s1_s2_raids'],
+    category: 'weekly',
+    label: '🛡️ S2 Raid (35220+ Ability Score)',
     color: 'dark_purple',
     maxProgress: 3,
     optional: false,
@@ -341,4 +313,9 @@ export const PROJECT_TASKS = [
 // Upstream ids intentionally left out of PROJECT_TASKS (i.e. not referenced
 // by any entry above). When adding an entry here, do not add a matching key
 // to labels.ja.json.
-export const EXCLUDED_UPSTREAM_IDS: string[] = []
+export const EXCLUDED_UPSTREAM_IDS: string[] = [
+  'daily_friendship_list',
+  'weekly_module_exchange',
+  'weekly_sigil_store',
+  'weekly_honor_store',
+]
