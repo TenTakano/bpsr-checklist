@@ -1,20 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import type { Task } from './taskSchema'
+import type { ProjectTask } from './projectTaskSchema'
 import {
   moveIdInOrder,
   resolveTaskOrder,
   resolveTaskOrderIds,
 } from './taskOrder'
 
-const buildTask = (id: string): Task => ({
+const buildTask = (id: string): ProjectTask => ({
   id,
   label: id,
   color: 'blue',
   maxProgress: 1,
   optional: false,
+  resetCycle: 'daily',
 })
 
-const TASKS: Task[] = [buildTask('a'), buildTask('b'), buildTask('c')]
+const TASKS: ProjectTask[] = [buildTask('a'), buildTask('b'), buildTask('c')]
 
 describe('resolveTaskOrder', () => {
   it('returns the tasks in definition order when order is undefined', () => {

@@ -1,23 +1,18 @@
-import { DAILY_TASKS, WEEKLY_TASKS } from './projectTasksResolver'
-import type { Task } from './taskSchema'
+import { PROJECT_TASKS_BY_RESET_CYCLE } from './projectTasksResolver'
+import type { ProjectTask } from './projectTaskSchema'
 import type { TaskCategory } from './taskLookup'
 
-const TASKS_BY_CATEGORY: Record<TaskCategory, Task[]> = {
-  daily: DAILY_TASKS,
-  weekly: WEEKLY_TASKS,
-}
-
 export function resolveTaskOrder(
-  tasks: Task[],
+  tasks: ProjectTask[],
   order: string[] | undefined,
-): Task[] {
+): ProjectTask[] {
   if (order === undefined || order.length === 0) {
     return tasks
   }
 
   const taskById = new Map(tasks.map((task) => [task.id, task]))
   const seenIds = new Set<string>()
-  const ordered: Task[] = []
+  const ordered: ProjectTask[] = []
 
   for (const id of order) {
     const task = taskById.get(id)
@@ -41,7 +36,7 @@ export function resolveTaskOrderIds(
   category: TaskCategory,
   order: string[] | undefined,
 ): string[] {
-  return resolveTaskOrder(TASKS_BY_CATEGORY[category], order).map(
+  return resolveTaskOrder(PROJECT_TASKS_BY_RESET_CYCLE[category], order).map(
     (task) => task.id,
   )
 }

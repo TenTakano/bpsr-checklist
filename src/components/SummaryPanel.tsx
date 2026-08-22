@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
-import type { Task } from '../data/taskSchema'
+import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
+import type { ProjectTask } from '../data/projectTaskSchema'
+import { TASK_SECTIONS } from '../data/taskSections'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { useStore } from '../store/context'
 import type { Character } from '../store/schema'
@@ -12,27 +13,23 @@ export function SummaryPanel() {
   return (
     <section aria-label="全体進捗サマリー" className="summary-panel">
       <h2 className="summary-panel-heading">全体進捗</h2>
-      <SummaryRow
-        title="デイリー"
-        tasks={DAILY_TASKS}
-        characters={store.characters}
-        progress={store.progress}
-        hiddenTaskIds={store.hiddenTaskIds}
-      />
-      <SummaryRow
-        title="ウィークリー"
-        tasks={WEEKLY_TASKS}
-        characters={store.characters}
-        progress={store.progress}
-        hiddenTaskIds={store.hiddenTaskIds}
-      />
+      {TASK_SECTIONS.map(({ title, cycle }) => (
+        <SummaryRow
+          key={cycle}
+          title={title}
+          tasks={PROJECT_TASKS_BY_RESET_CYCLE[cycle]}
+          characters={store.characters}
+          progress={store.progress}
+          hiddenTaskIds={store.hiddenTaskIds}
+        />
+      ))}
     </section>
   )
 }
 
 interface SummaryRowProps {
   title: string
-  tasks: Task[]
+  tasks: ProjectTask[]
   characters: Character[]
   progress: Store['progress']
   hiddenTaskIds: string[] | undefined
