@@ -1,14 +1,17 @@
 import { useMemo } from 'react'
+import { getCurrentWeekdayJst } from '../data/resetConfig'
 import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
 import type { ProjectTask } from '../data/projectTaskSchema'
 import { TASK_SECTIONS } from '../data/taskSections'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
+import { getExcludedTaskIds } from '../domain/taskAvailability'
 import { useStore } from '../store/context'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
 
 export function SummaryPanel() {
   const { store } = useStore()
+  const currentWeekdayJst = getCurrentWeekdayJst(store.resetState?.daily)
 
   return (
     <section aria-label="全体進捗サマリー" className="summary-panel">
@@ -21,6 +24,7 @@ export function SummaryPanel() {
           characters={store.characters}
           progress={store.progress}
           hiddenTaskIds={store.hiddenTaskIds}
+          currentWeekdayJst={currentWeekdayJst}
         />
       ))}
     </section>
@@ -33,6 +37,7 @@ interface SummaryRowProps {
   characters: Character[]
   progress: Store['progress']
   hiddenTaskIds: string[] | undefined
+  currentWeekdayJst: number | undefined
 }
 
 function SummaryRow({
@@ -41,10 +46,16 @@ function SummaryRow({
   characters,
   progress,
   hiddenTaskIds,
+  currentWeekdayJst,
 }: SummaryRowProps) {
+  const excludedTaskIds = useMemo(
+    () => getExcludedTaskIds(tasks, hiddenTaskIds, currentWeekdayJst),
+    [tasks, hiddenTaskIds, currentWeekdayJst],
+  )
   const summary = useMemo(
-    () => summarizeCategoryProgress(tasks, characters, progress, hiddenTaskIds),
-    [tasks, characters, progress, hiddenTaskIds],
+    () =>
+      summarizeCategoryProgress(tasks, characters, progress, excludedTaskIds),
+    [tasks, characters, progress, excludedTaskIds],
   )
   const characterById = useMemo(
     () => new Map(characters.map((character) => [character.id, character])),

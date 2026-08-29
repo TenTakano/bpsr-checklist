@@ -13,6 +13,7 @@ import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import {
   DEFAULT_CHARACTER,
   emptyStore,
+  MONDAY_RESET_STATE,
   storeWithCharacter,
 } from '../test/fixtures'
 import { moveTask, setProgress } from '../store/actions'
@@ -35,6 +36,14 @@ const COUNTER_TASK_LABEL = getTaskLabel(DAILY_TASKS[2])
 const COUNTER_TASK_MAX = DAILY_TASKS[2].maxProgress
 if (COUNTER_TASK_MAX <= 1) {
   throw new Error('DAILY_TASKS[2] must have maxProgress > 1 for these tests')
+}
+
+const GUILD_HUNT_TASK = DAILY_TASKS.find((task) => task.id === 'guild_hunt')
+const GUILD_DANCE_TASK = DAILY_TASKS.find((task) => task.id === 'guild_dance')
+if (GUILD_HUNT_TASK === undefined || GUILD_DANCE_TASK === undefined) {
+  throw new Error(
+    'guild_hunt/guild_dance must exist in DAILY_TASKS for weekday-limited task tests',
+  )
 }
 
 const CHARACTER_NAME = DEFAULT_CHARACTER.name
@@ -462,6 +471,45 @@ describe('MatrixView / hidden tasks', () => {
   })
 })
 
+describe('MatrixView / weekday-limited tasks', () => {
+  it('excludes weekday-unavailable task rows from rendering while keeping other rows', () => {
+    renderWithContext({
+      store: storeWithCharacter({ resetState: MONDAY_RESET_STATE }),
+    })
+    expect(
+      screen.queryByTitle(getTaskLabel(GUILD_HUNT_TASK)),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByTitle(getTaskLabel(GUILD_DANCE_TASK)),
+    ).not.toBeInTheDocument()
+    expect(screen.getByTitle(getTaskLabel(DAILY_TASKS[0]))).toBeInTheDocument()
+  })
+
+  it('keeps the drag-and-drop target anchored to the full taskOrder position even when a weekday-unavailable task sits between visible rows', () => {
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({
+        resetState: MONDAY_RESET_STATE,
+        taskOrder: {
+          daily: [DAILY_TASKS[0].id, GUILD_HUNT_TASK.id, DAILY_TASKS[1].id],
+          weekly: [],
+        },
+      }),
+    })
+    const firstLabel = getTaskLabel(DAILY_TASKS[0])
+    const secondLabel = getTaskLabel(DAILY_TASKS[1])
+    const source = getDragHandle(secondLabel)
+    const target = screen.getByTitle(firstLabel)
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
+
+    expect(dispatch).toHaveBeenCalledWith(
+      moveTask('daily', DAILY_TASKS[1].id, 0),
+    )
+  })
+})
+
 describe('MatrixView / handle column header', () => {
   it('gives the empty sort-handle column header hidden text for screen readers', () => {
     renderWithContext({ store: storeWithCharacter() })
@@ -533,6 +581,26 @@ describe('MatrixView / keyboard reordering', () => {
     fireEvent.keyDown(handle, { key: 'ArrowUp' })
 
     expect(dispatch).toHaveBeenCalledWith(moveTask('daily', dailyIds[2], 0))
+  })
+
+  it('anchors the move target to the full taskOrder index across a weekday-unavailable task', () => {
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({
+        resetState: MONDAY_RESET_STATE,
+        taskOrder: {
+          daily: [DAILY_TASKS[0].id, GUILD_HUNT_TASK.id, DAILY_TASKS[1].id],
+          weekly: [],
+        },
+      }),
+    })
+    const handle = getDragHandle(getTaskLabel(DAILY_TASKS[1]))
+    handle.focus()
+
+    fireEvent.keyDown(handle, { key: 'ArrowUp' })
+
+    expect(dispatch).toHaveBeenCalledWith(
+      moveTask('daily', DAILY_TASKS[1].id, 0),
+    )
   })
 
   it('keeps focus on the same task handle after a real reorder', () => {
@@ -723,6 +791,18 @@ describe('MatrixView / section header progress', () => {
     expect(within(header).getByText('0 / 0 完了')).toBeInTheDocument()
     expect(
       within(header).getByRole('button', { name: '表示タスク設定' }),
+    ).toBeInTheDocument()
+  })
+
+  it('excludes weekday-unavailable tasks from the denominator', () => {
+    const dailyTotal = DAILY_TASKS.length
+    renderWithContext({
+      store: storeWithCharacter({ resetState: MONDAY_RESET_STATE }),
+    })
+    expect(
+      within(getSectionHeader('デイリー')).getByText(
+        `0 / ${dailyTotal - 2} 完了`,
+      ),
     ).toBeInTheDocument()
   })
 })

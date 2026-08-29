@@ -309,6 +309,7 @@ describe('reducer / setTaskDetailedCount', () => {
 describe('reducer / evaluateResetState', () => {
   it('initializes resetState on first evaluation without deleting anything', () => {
     const store = storeWithCharacter({
+      resetState: undefined,
       progress: { 'char-1': { [DAILY_TASK_ID]: 2 } },
     })
     const now = new Date('2026-02-04T10:00:00.000Z')

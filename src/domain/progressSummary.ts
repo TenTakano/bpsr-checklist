@@ -23,10 +23,10 @@ export const summarizeCategoryProgress = (
   tasks: Task[],
   characters: Character[],
   progress: Store['progress'],
-  hiddenTaskIds: string[] | undefined,
+  excludedTaskIds: string[] | undefined,
 ): CategoryProgressSummary => {
-  const hiddenTaskIdSet = new Set(hiddenTaskIds ?? [])
-  const visibleTasks = tasks.filter((task) => !hiddenTaskIdSet.has(task.id))
+  const excludedTaskIdSet = new Set(excludedTaskIds ?? [])
+  const visibleTasks = tasks.filter((task) => !excludedTaskIdSet.has(task.id))
 
   const byCharacter: CharacterProgressCount[] = characters.map((character) => ({
     characterId: character.id,

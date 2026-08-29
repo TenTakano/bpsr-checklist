@@ -7,6 +7,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from 'react'
+import { getCurrentWeekdayJst } from '../data/resetConfig'
 import { resolveTaskColor } from '../data/taskColors'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
@@ -15,6 +16,7 @@ import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
 import type { ProjectTask } from '../data/projectTaskSchema'
 import { TASK_SECTIONS } from '../data/taskSections'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
+import { getExcludedTaskIds } from '../domain/taskAvailability'
 import { isTaskComplete, readProgressValue } from '../domain/taskProgress'
 import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
@@ -40,6 +42,7 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
   const { store, status, dispatch } = useStore()
   const isReadOnly = status === 'readonly'
   const characters = store.characters
+  const currentWeekdayJst = getCurrentWeekdayJst(store.resetState?.daily)
 
   if (characters.length === 0) {
     return (
@@ -59,6 +62,7 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
           tasks={PROJECT_TASKS_BY_RESET_CYCLE[cycle]}
           taskOrder={store.taskOrder?.[cycle]}
           hiddenTaskIds={store.hiddenTaskIds}
+          currentWeekdayJst={currentWeekdayJst}
           detailedCountTaskIds={store.detailedCountTaskIds}
           characters={characters}
           progress={store.progress}
@@ -79,6 +83,7 @@ interface MatrixSectionProps {
   tasks: ProjectTask[]
   taskOrder: string[] | undefined
   hiddenTaskIds: string[] | undefined
+  currentWeekdayJst: number | undefined
   detailedCountTaskIds: string[] | undefined
   characters: Character[]
   progress: Store['progress']
@@ -93,6 +98,7 @@ function MatrixSection({
   tasks,
   taskOrder,
   hiddenTaskIds,
+  currentWeekdayJst,
   detailedCountTaskIds,
   characters,
   progress,
@@ -104,24 +110,32 @@ function MatrixSection({
     () => resolveTaskOrder(tasks, taskOrder),
     [tasks, taskOrder],
   )
+  // Tasks not available on the current (game-day) weekday are excluded the
+  // same way as manually hidden tasks: membership check only, never by
+  // filtering the arrays fed into resolveTaskOrder/moveTask.
+  const excludedTaskIds = useMemo(
+    () => getExcludedTaskIds(tasks, hiddenTaskIds, currentWeekdayJst),
+    [tasks, hiddenTaskIds, currentWeekdayJst],
+  )
   const summary = useMemo(
-    () => summarizeCategoryProgress(tasks, characters, progress, hiddenTaskIds),
-    [tasks, characters, progress, hiddenTaskIds],
+    () =>
+      summarizeCategoryProgress(tasks, characters, progress, excludedTaskIds),
+    [tasks, characters, progress, excludedTaskIds],
   )
   // Membership check only, not filtering: index/toIndex math for
   // drag-and-drop stays anchored to positions within the full taskOrder
   // array (see moveIdInOrder), so a hidden task keeps its slot even while
   // its row is not rendered.
-  const hiddenTaskIdSet = useMemo(
-    () => new Set(hiddenTaskIds ?? []),
-    [hiddenTaskIds],
+  const excludedTaskIdSet = useMemo(
+    () => new Set(excludedTaskIds),
+    [excludedTaskIds],
   )
   const detailedCountTaskIdSet = useMemo(
     () => new Set(detailedCountTaskIds ?? []),
     [detailedCountTaskIds],
   )
   const hasVisibleTask = orderedTasks.some(
-    (task) => !hiddenTaskIdSet.has(task.id),
+    (task) => !excludedTaskIdSet.has(task.id),
   )
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
@@ -158,8 +172,8 @@ function MatrixSection({
     () =>
       orderedTasks
         .map((task, index) => ({ task, index }))
-        .filter(({ task }) => !hiddenTaskIdSet.has(task.id)),
-    [orderedTasks, hiddenTaskIdSet],
+        .filter(({ task }) => !excludedTaskIdSet.has(task.id)),
+    [orderedTasks, excludedTaskIdSet],
   )
   const normalTaskEntries = useMemo(
     () => visibleTaskEntries.filter(({ task }) => !isRowComplete(task)),

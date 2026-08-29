@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getCurrentDailyPeriodStart,
   getCurrentWeeklyPeriodStart,
+  getWeekdayJstFromPeriodStart,
 } from './resetConfig'
 
 describe('getCurrentDailyPeriodStart', () => {
@@ -74,4 +75,35 @@ describe('getCurrentWeeklyPeriodStart', () => {
       expect(getCurrentWeeklyPeriodStart(new Date(now))).toBe(expected)
     },
   )
+})
+
+describe('getWeekdayJstFromPeriodStart', () => {
+  it.each([
+    {
+      note: 'Sunday period start, crossing into the next UTC calendar day',
+      // 2026-01-31T20:00:00Z = 2026-02-01T05:00:00 JST (Sunday)
+      periodStartIso: '2026-01-31T20:00:00.000Z',
+      expected: 0,
+    },
+    {
+      note: 'Monday period start',
+      // 2026-02-01T20:00:00Z = 2026-02-02T05:00:00 JST (Monday)
+      periodStartIso: '2026-02-01T20:00:00.000Z',
+      expected: 1,
+    },
+    {
+      note: 'Wednesday period start',
+      // 2026-02-03T20:00:00Z = 2026-02-04T05:00:00 JST (Wednesday)
+      periodStartIso: '2026-02-03T20:00:00.000Z',
+      expected: 3,
+    },
+    {
+      note: 'Saturday period start',
+      // 2026-02-06T20:00:00Z = 2026-02-07T05:00:00 JST (Saturday)
+      periodStartIso: '2026-02-06T20:00:00.000Z',
+      expected: 6,
+    },
+  ])('resolves the JST weekday ($note)', ({ periodStartIso, expected }) => {
+    expect(getWeekdayJstFromPeriodStart(periodStartIso)).toBe(expected)
+  })
 })
