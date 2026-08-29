@@ -152,6 +152,30 @@ describe('createProjectTaskDefinitionsSchema', () => {
     }
   })
 
+  it('accepts a weekly-upstream entry promoted to a weekday-limited daily task via resetCycleOverrideIds', () => {
+    const result = parse(
+      [buildWeeklyA({ resetCycle: 'daily', availableWeekdays: [5] })],
+      new Set(['weekly_a']),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a resetCycle mismatch even when availableWeekdays is set, if the id is not listed in resetCycleOverrideIds', () => {
+    const result = parse([
+      buildDailyA({ resetCycle: 'weekly', availableWeekdays: [1] }),
+    ])
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(
+        result.error.issues.some((issue) =>
+          /resetCycle .*が upstreamIds から解決されるリセット周期と一致しません/.test(
+            issue.message,
+          ),
+        ),
+      ).toBe(true)
+    }
+  })
+
   it.each([
     [
       'duplicate project task ids',

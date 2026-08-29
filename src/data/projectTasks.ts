@@ -5,6 +5,8 @@ import type { ProjectTaskDefinition } from './projectTaskSchema'
 // entry specifies them explicitly, so upstreamTasks.json content changes
 // (label wording, etc.) never silently change what the app displays. See
 // docs/task-layers.md.
+// availableWeekdays follows the same numbering as Date.getUTCDay() (0=Sunday,
+// 1=Monday, ..., 6=Saturday); see src/data/resetConfig.ts.
 export const PROJECT_TASKS = [
   {
     id: 'mystery_store',
@@ -145,7 +147,8 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_hunt',
     upstreamIds: ['weekly_guild_hunt'],
-    resetCycle: 'weekly',
+    resetCycle: 'daily',
+    availableWeekdays: [5, 6, 0],
     label: '🏹 Guild Hunt (Clear x2)',
     color: 'orange',
     maxProgress: 3,
@@ -154,7 +157,8 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_dance',
     upstreamIds: ['weekly_guild_dance'],
-    resetCycle: 'weekly',
+    resetCycle: 'daily',
+    availableWeekdays: [5],
     label: '💃 Guild Dance (Participate)',
     color: 'orange',
     maxProgress: 1,
@@ -325,4 +329,6 @@ export const EXCLUDED_UPSTREAM_IDS: string[] = [
 // explicitly to suppress the mismatch check in
 // createProjectTaskDefinitionsSchema; any other mismatch still errors so the
 // upstream-sync bot's resetCycle typos continue to be caught.
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
+// guild_hunt/guild_dance: the upstream resource resets weekly, but the app
+// treats them as weekday-limited daily tasks via availableWeekdays.
+export const RESET_CYCLE_OVERRIDE_IDS: string[] = ['guild_hunt', 'guild_dance']

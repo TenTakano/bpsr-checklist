@@ -75,6 +75,9 @@ export function resolveProjectTasks(
       maxProgress: definition.maxProgress,
       optional: definition.optional,
       resetCycle: definition.resetCycle,
+      ...(definition.availableWeekdays !== undefined && {
+        availableWeekdays: definition.availableWeekdays,
+      }),
     }
     resolved[sectionOf(definition)].push(task)
   }

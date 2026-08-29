@@ -14,16 +14,6 @@ export const TaskIdSchema = z
       'id にはプロトタイプ汚染につながる __proto__ / constructor / prototype は使用できません',
   })
 
-export const TaskSchema = z.strictObject({
-  id: TaskIdSchema,
-  label: z.string().min(1),
-  color: z.string().min(1),
-  maxProgress: z.number().int().positive(),
-  optional: z.boolean(),
-})
-
-export type Task = z.infer<typeof TaskSchema>
-
 export function findDuplicateIds<T>(
   items: T[],
   getId: (item: T) => string,
@@ -39,6 +29,30 @@ export function findDuplicateIds<T>(
   }
   return [...duplicates]
 }
+
+export const AvailableWeekdaysSchema = z
+  .array(z.number().int().min(0).max(6))
+  .min(1)
+  .superRefine((weekdays, ctx) => {
+    const duplicates = findDuplicateIds(weekdays, (weekday) => String(weekday))
+    if (duplicates.length > 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `availableWeekdays に重複した曜日番号があります: ${duplicates.join(', ')}`,
+      })
+    }
+  })
+
+export const TaskSchema = z.strictObject({
+  id: TaskIdSchema,
+  label: z.string().min(1),
+  color: z.string().min(1),
+  maxProgress: z.number().int().positive(),
+  optional: z.boolean(),
+  availableWeekdays: AvailableWeekdaysSchema.optional(),
+})
+
+export type Task = z.infer<typeof TaskSchema>
 
 export const UpstreamTasksDocumentSchema = z
   .strictObject({
@@ -60,6 +74,15 @@ export const UpstreamTasksDocumentSchema = z
         code: 'custom',
         message: `id が daily/weekly 間で重複しています: ${duplicates.join(', ')}`,
       })
+    }
+
+    for (const task of document.weekly) {
+      if (task.availableWeekdays !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `availableWeekdays は daily のときのみ指定できます: ${task.id}`,
+        })
+      }
     }
   })
 
