@@ -154,7 +154,7 @@ jobs:
                - `upstreamIds`: `['<本家id>']`
                - `label` / `color` / `maxProgress` / `optional`: `src/data/upstreamTasks.json` の
                  対応するタスクエントリの値をそのままコピーする
-               - `category`: 本家 id が `daily_` で始まれば `'daily'`、`weekly_` で始まれば `'weekly'`
+               - `resetCycle`: 本家 id が `daily_` で始まれば `'daily'`、`weekly_` で始まれば `'weekly'`
                さらに `src/data/labels.ja.json` にはそのプロジェクト id をキーとして日本語訳を追加
                する。プロジェクト id が既存のプロジェクト id と衝突する場合は、衝突しない識別子を選ぶ。
                対訳は既存の書式（絵文字の踏襲、区切り記号「|」の前後で本文と注記を分ける表記）に合わ
@@ -165,8 +165,8 @@ jobs:
                新設と判断した場合は手順 2 と同様に新規追加として扱う
             4. 本家からタスクが削除された場合: 対応するプロジェクトタスクのエントリを `PROJECT_TASKS`
                から削除し、`src/data/labels.ja.json` の該当キーも削除する
-            5. `EXCLUDED_UPSTREAM_IDS`（`src/data/projectTasks.ts`）は人間が意図的に除外判断したリスト
-               なので変更しないこと
+            5. `EXCLUDED_UPSTREAM_IDS` と `RESET_CYCLE_OVERRIDE_IDS`（`src/data/projectTasks.ts`）は人間
+               が意図的に判断したリストなので変更しないこと
             6. 進捗（達成状況）はブラウザの localStorage にプロジェクト id をキーとして保存されている。
                本家 id の改名は手順 3 の `upstreamIds` 更新で吸収され、プロジェクト id・
                `labels.ja.json` のキーを変更しない限り既存ユーザーの進捗は引き継がれる。一方、
@@ -180,6 +180,7 @@ jobs:
             - 編集してよいのは `src/data/labels.ja.json` と `src/data/projectTasks.ts` の 2 つのみ。
               `src/data/upstreamTasks.json` や `src/` 配下の他のファイルは変更しないこと
             - `EXCLUDED_UPSTREAM_IDS` の内容は変更しないこと
+            - `RESET_CYCLE_OVERRIDE_IDS` の内容は変更しないこと
             - リポジトリは既にチェックアウト済みで、カレントディレクトリで作業できる
           claude_args: |
             --allowedTools "Read(src/data/**),Edit(src/data/labels.ja.json),Edit(src/data/projectTasks.ts),Bash(git diff -- src/data/upstreamTasks.json),Bash(git log -- src/data/upstreamTasks.json)"

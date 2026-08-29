@@ -1,3 +1,5 @@
+import type { ResetCycle } from './resetCycle'
+
 // JST 5:00 / Monday 5:00 is an unverified placeholder, not a confirmed
 // Japan-server value (see Issue #7).
 const DAILY_RESET_HOUR_JST = 5
@@ -41,3 +43,12 @@ export const getCurrentWeeklyPeriodStart = (now: Date): string => {
   }
   return fromJstShifted(shiftedStart).toISOString()
 }
+
+// Adding a cycle (e.g. biweekly) will likely need extra parameters such as
+// an epoch anchor, which would require redesigning this signature (now
+// only) itself (to be settled in #108).
+export const PERIOD_START_RESOLVERS: Record<ResetCycle, (now: Date) => string> =
+  {
+    daily: getCurrentDailyPeriodStart,
+    weekly: getCurrentWeeklyPeriodStart,
+  }
