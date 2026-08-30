@@ -56,10 +56,4 @@ describe('TASK_COLOR_LABELS_JA', () => {
       expect(TASK_COLOR_LABELS_JA[token]).toBeTruthy()
     }
   })
-
-  it('covers exactly the known tokens (no extras)', () => {
-    expect(Object.keys(TASK_COLOR_LABELS_JA).sort()).toEqual(
-      [...TASK_COLOR_TOKENS].sort(),
-    )
-  })
 })

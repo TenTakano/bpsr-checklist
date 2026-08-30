@@ -8,6 +8,12 @@ export const MAX_CUSTOM_TASK_NAME_LENGTH = 50
 export const MIN_CUSTOM_TASK_MAX_PROGRESS = 1
 export const MAX_CUSTOM_TASK_MAX_PROGRESS = 1000
 
+// UI上でユーザーが新規作成できるカスタムタスクの上限。
+// store/backup.ts の MAX_IMPORT_CUSTOM_TASKS（バックアップインポート時の
+// ペイロードサイズ上限）とは目的の異なる別ドメインの定数であり、値の整合は
+// customTaskSchema.test.ts でテストする。
+export const MAX_CUSTOM_TASKS = 200
+
 export const CUSTOM_TASK_ID_PREFIX = 'custom_'
 
 // 既存タスク(upstreamTasks.json由来の daily_*/weekly_* 等)の TaskIdSchema

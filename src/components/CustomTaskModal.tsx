@@ -9,6 +9,7 @@ import {
 import {
   MAX_CUSTOM_TASK_MAX_PROGRESS,
   MAX_CUSTOM_TASK_NAME_LENGTH,
+  MAX_CUSTOM_TASKS,
   MIN_CUSTOM_TASK_MAX_PROGRESS,
 } from '../data/customTaskSchema'
 import {
@@ -19,14 +20,13 @@ import {
 } from '../data/taskColors'
 import type { TaskCategory } from '../data/taskLookup'
 import { MATRIX_TASK_SECTIONS } from '../data/taskSections'
-import { MAX_IMPORT_CUSTOM_TASKS } from '../store/backup'
 import { addCustomTask, updateCustomTask } from '../store/actions'
 import { useStore } from '../store/context'
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export const CUSTOM_TASK_LIMIT_MESSAGE = `カスタムタスクは最大${MAX_IMPORT_CUSTOM_TASKS}件までのため、これ以上追加できません。`
+export const CUSTOM_TASK_LIMIT_MESSAGE = `カスタムタスクは最大${MAX_CUSTOM_TASKS}件までのため、これ以上追加できません。`
 export const CUSTOM_TASK_NAME_REQUIRED_MESSAGE = '名前を入力してください。'
 export const CUSTOM_TASK_NAME_TOO_LONG_MESSAGE = `名前は${MAX_CUSTOM_TASK_NAME_LENGTH}文字以内で入力してください。`
 export const CUSTOM_TASK_MAX_PROGRESS_RANGE_MESSAGE = `${MIN_CUSTOM_TASK_MAX_PROGRESS}〜${MAX_CUSTOM_TASK_MAX_PROGRESS}の整数を入力してください。`
@@ -125,8 +125,7 @@ export function CustomTaskModal({
   }
 
   const isAtLimit =
-    mode === 'add' &&
-    (store.customTasks?.length ?? 0) >= MAX_IMPORT_CUSTOM_TASKS
+    mode === 'add' && (store.customTasks?.length ?? 0) >= MAX_CUSTOM_TASKS
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

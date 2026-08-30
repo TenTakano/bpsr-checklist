@@ -1,6 +1,7 @@
 import {
   MAX_CUSTOM_TASK_MAX_PROGRESS,
   MAX_CUSTOM_TASK_NAME_LENGTH,
+  MAX_CUSTOM_TASKS,
   MIN_CUSTOM_TASK_MAX_PROGRESS,
 } from '../data/customTaskSchema'
 import { PERIOD_START_RESOLVERS } from '../data/resetConfig'
@@ -335,7 +336,11 @@ export const reducer = (store: Store, action: Action): Store => {
         action.name,
         MAX_CUSTOM_TASK_NAME_LENGTH,
       )
-      if (name === null || !isValidMaxProgress(action.maxProgress)) {
+      if (
+        name === null ||
+        !isValidMaxProgress(action.maxProgress) ||
+        (store.customTasks?.length ?? 0) >= MAX_CUSTOM_TASKS
+      ) {
         return store
       }
       const customTask: CustomTask = {

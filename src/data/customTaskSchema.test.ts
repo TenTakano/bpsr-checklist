@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { MAX_IMPORT_CUSTOM_TASKS } from '../store/backup'
 import {
   CustomTaskSchema,
   MAX_CUSTOM_TASK_MAX_PROGRESS,
   MAX_CUSTOM_TASK_NAME_LENGTH,
+  MAX_CUSTOM_TASKS,
   MIN_CUSTOM_TASK_MAX_PROGRESS,
 } from './customTaskSchema'
 
@@ -103,5 +105,11 @@ describe('CustomTaskSchema', () => {
       label: 'unexpected',
     })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('MAX_CUSTOM_TASKS', () => {
+  it('does not exceed MAX_IMPORT_CUSTOM_TASKS, so a UI-created full set of custom tasks always survives a backup import', () => {
+    expect(MAX_CUSTOM_TASKS).toBeLessThanOrEqual(MAX_IMPORT_CUSTOM_TASKS)
   })
 })

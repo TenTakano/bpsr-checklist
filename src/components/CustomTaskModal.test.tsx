@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import {
+  MAX_CUSTOM_TASK_MAX_PROGRESS,
+  MAX_CUSTOM_TASK_NAME_LENGTH,
+  MAX_CUSTOM_TASKS,
+  MIN_CUSTOM_TASK_MAX_PROGRESS,
+} from '../data/customTaskSchema'
 import { addCustomTask, updateCustomTask } from '../store/actions'
 import { StoreContext, type StoreContextValue } from '../store/context'
-import { MAX_IMPORT_CUSTOM_TASKS } from '../store/backup'
 import {
   buildCustomTask,
   emptyStore,
@@ -13,6 +18,7 @@ import {
   CUSTOM_TASK_LIMIT_MESSAGE,
   CUSTOM_TASK_MAX_PROGRESS_RANGE_MESSAGE,
   CUSTOM_TASK_NAME_REQUIRED_MESSAGE,
+  CUSTOM_TASK_NAME_TOO_LONG_MESSAGE,
   CustomTaskModal,
 } from './CustomTaskModal'
 
@@ -28,12 +34,12 @@ const renderWithContext = (
     dispatch,
     ...overrides,
   }
-  render(
+  const { container } = render(
     <StoreContext.Provider value={value}>
       <CustomTaskModal {...props} />
     </StoreContext.Provider>,
   )
-  return { dispatch }
+  return { dispatch, container }
 }
 
 describe('CustomTaskModal / add mode', () => {
@@ -74,47 +80,63 @@ describe('CustomTaskModal / add mode', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('shows an inline error and does not dispatch when the name is empty', async () => {
-    const user = userEvent.setup()
-    const { dispatch } = renderWithContext({
-      mode: 'add',
-      category: 'daily',
-      onClose: vi.fn(),
-    })
+  it.each([
+    ['empty', '', CUSTOM_TASK_NAME_REQUIRED_MESSAGE],
+    [
+      'too long',
+      'a'.repeat(MAX_CUSTOM_TASK_NAME_LENGTH + 1),
+      CUSTOM_TASK_NAME_TOO_LONG_MESSAGE,
+    ],
+  ])(
+    'shows an inline error and does not dispatch when the name is %s',
+    async (_label, name, expectedMessage) => {
+      const user = userEvent.setup()
+      const { dispatch } = renderWithContext({
+        mode: 'add',
+        category: 'daily',
+        onClose: vi.fn(),
+      })
 
-    await user.click(screen.getByRole('button', { name: '保存' }))
+      fireEvent.change(screen.getByLabelText('名前'), {
+        target: { value: name },
+      })
+      await user.click(screen.getByRole('button', { name: '保存' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      CUSTOM_TASK_NAME_REQUIRED_MESSAGE,
-    )
-    expect(dispatch).not.toHaveBeenCalled()
-  })
+      expect(screen.getByRole('alert')).toHaveTextContent(expectedMessage)
+      expect(dispatch).not.toHaveBeenCalled()
+    },
+  )
 
-  it('shows an inline error and does not dispatch when maxProgress is out of range', async () => {
-    const user = userEvent.setup()
-    const { dispatch } = renderWithContext({
-      mode: 'add',
-      category: 'daily',
-      onClose: vi.fn(),
-    })
+  it.each([
+    ['below the minimum', String(MIN_CUSTOM_TASK_MAX_PROGRESS - 1)],
+    ['above the maximum', String(MAX_CUSTOM_TASK_MAX_PROGRESS + 1)],
+    ['non-integer', '1.5'],
+  ])(
+    'shows an inline error and does not dispatch when maxProgress is %s',
+    async (_label, value) => {
+      const user = userEvent.setup()
+      const { dispatch } = renderWithContext({
+        mode: 'add',
+        category: 'daily',
+        onClose: vi.fn(),
+      })
 
-    await user.type(screen.getByLabelText('名前'), 'テスト')
-    const maxProgressInput = screen.getByLabelText('目標回数')
-    await user.clear(maxProgressInput)
-    await user.type(maxProgressInput, '0')
-    await user.click(screen.getByRole('button', { name: '保存' }))
+      await user.type(screen.getByLabelText('名前'), 'テスト')
+      const maxProgressInput = screen.getByLabelText('目標回数')
+      await user.clear(maxProgressInput)
+      await user.type(maxProgressInput, value)
+      await user.click(screen.getByRole('button', { name: '保存' }))
 
-    expect(
-      screen.getByText(CUSTOM_TASK_MAX_PROGRESS_RANGE_MESSAGE),
-    ).toBeInTheDocument()
-    expect(dispatch).not.toHaveBeenCalled()
-  })
+      expect(
+        screen.getByText(CUSTOM_TASK_MAX_PROGRESS_RANGE_MESSAGE),
+      ).toBeInTheDocument()
+      expect(dispatch).not.toHaveBeenCalled()
+    },
+  )
 
-  it('disables saving and shows a limit message once the custom task count reaches the import limit', () => {
-    const customTasks = Array.from(
-      { length: MAX_IMPORT_CUSTOM_TASKS },
-      (_, index) =>
-        buildCustomTask({ id: `custom_limit_${index}`, category: 'daily' }),
+  it('disables saving and shows a limit message once the custom task count reaches the limit', () => {
+    const customTasks = Array.from({ length: MAX_CUSTOM_TASKS }, (_, index) =>
+      buildCustomTask({ id: `custom_limit_${index}`, category: 'daily' }),
     )
     renderWithContext(
       { mode: 'add', category: 'daily', onClose: vi.fn() },
@@ -200,6 +222,66 @@ describe('CustomTaskModal / edit mode', () => {
     )
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('does not disable saving when the custom task count is at the limit', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+    })
+    const customTasks = [
+      customTask,
+      ...Array.from({ length: MAX_CUSTOM_TASKS - 1 }, (_, index) =>
+        buildCustomTask({ id: `custom_limit_${index}`, category: 'daily' }),
+      ),
+    ]
+    renderWithContext(
+      {
+        mode: 'edit',
+        category: 'milestone',
+        taskId: 'custom_m1',
+        onClose: vi.fn(),
+      },
+      { store: storeWithCharacter({ customTasks }) },
+    )
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '保存' })).toBeEnabled()
+  })
+
+  it('disables the name, category, color, maxProgress, and save controls when readonly', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+    })
+    renderWithContext(
+      {
+        mode: 'edit',
+        category: 'milestone',
+        taskId: 'custom_m1',
+        onClose: vi.fn(),
+      },
+      {
+        status: 'readonly',
+        store: storeWithCharacter({ customTasks: [customTask] }),
+      },
+    )
+
+    expect(screen.getByLabelText('名前')).toBeDisabled()
+    expect(screen.getByLabelText('カテゴリ')).toBeDisabled()
+    expect(screen.getByLabelText('目標回数')).toBeDisabled()
+    expect(screen.getByRole('button', { name: '保存' })).toBeDisabled()
+    for (const swatch of screen.getAllByRole('button', { name: /^色: / })) {
+      expect(swatch).toBeDisabled()
+    }
+  })
+
+  it('disables category readonly in add mode', () => {
+    renderWithContext(
+      { mode: 'add', category: 'milestone', onClose: vi.fn() },
+      { status: 'readonly', store: storeWithCharacter({ customTasks: [] }) },
+    )
+    expect(screen.getByLabelText('カテゴリ')).toBeDisabled()
+  })
 })
 
 describe('CustomTaskModal / keyboard interaction', () => {
@@ -213,49 +295,49 @@ describe('CustomTaskModal / keyboard interaction', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('closes when the overlay is clicked', async () => {
-    const user = userEvent.setup()
-    const onClose = vi.fn()
-    const { container } = render(
-      <StoreContext.Provider
-        value={{
-          store: emptyStore(),
-          status: 'ok',
-          message: null,
-          dispatch: vi.fn(),
-        }}
-      >
-        <CustomTaskModal mode="add" category="daily" onClose={onClose} />
-      </StoreContext.Provider>,
-    )
+  it.each([
+    ['the overlay itself', '.modal-overlay', true],
+    ['inside the dialog', '.modal', false],
+  ])(
+    'onClose is called only when %s is clicked',
+    async (_label, selector, shouldClose) => {
+      const user = userEvent.setup()
+      const onClose = vi.fn()
+      const { container } = renderWithContext({
+        mode: 'add',
+        category: 'daily',
+        onClose,
+      })
 
-    const overlay = container.querySelector('.modal-overlay')
-    if (overlay === null) {
-      throw new Error('overlay not found')
-    }
-    await user.click(overlay)
+      const target = container.querySelector(selector)
+      if (target === null) {
+        throw new Error(`${selector} not found`)
+      }
+      await user.click(target)
 
-    expect(onClose).toHaveBeenCalled()
-  })
+      if (shouldClose) {
+        expect(onClose).toHaveBeenCalled()
+      } else {
+        expect(onClose).not.toHaveBeenCalled()
+      }
+    },
+  )
 
-  it('wraps Tab focus from the last focusable element back to the first', async () => {
-    const user = userEvent.setup()
-    renderWithContext({ mode: 'add', category: 'daily', onClose: vi.fn() })
+  it.each([
+    ['保存', false, '閉じる'],
+    ['閉じる', true, '保存'],
+  ])(
+    'wraps focus starting from %s (shiftKey: %s) back to %s',
+    async (startButtonName, shiftKey, expectedButtonName) => {
+      const user = userEvent.setup()
+      renderWithContext({ mode: 'add', category: 'daily', onClose: vi.fn() })
 
-    const saveButton = screen.getByRole('button', { name: '保存' })
-    saveButton.focus()
-    await user.tab()
+      screen.getByRole('button', { name: startButtonName }).focus()
+      await user.tab({ shift: shiftKey })
 
-    expect(screen.getByRole('button', { name: '閉じる' })).toHaveFocus()
-  })
-
-  it('wraps Shift+Tab focus from the first focusable element back to the last', async () => {
-    const user = userEvent.setup()
-    renderWithContext({ mode: 'add', category: 'daily', onClose: vi.fn() })
-
-    screen.getByRole('button', { name: '閉じる' }).focus()
-    await user.tab({ shift: true })
-
-    expect(screen.getByRole('button', { name: '保存' })).toHaveFocus()
-  })
+      expect(
+        screen.getByRole('button', { name: expectedButtonName }),
+      ).toHaveFocus()
+    },
+  )
 })
