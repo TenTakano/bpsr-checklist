@@ -7,6 +7,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from 'react'
+import { CUSTOM_TASK_ID_PREFIX } from '../data/customTaskSchema'
 import { resolveTaskColor } from '../data/taskColors'
 import { splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
@@ -22,7 +23,11 @@ import { moveTask, setProgress } from '../store/actions'
 import { useStore, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
-import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
+import {
+  ADD_CUSTOM_TASK_LABEL,
+  NO_CHARACTERS_MESSAGE,
+  NO_VISIBLE_TASKS_MESSAGE,
+} from './messages'
 
 type Dispatch = StoreContextValue['dispatch']
 type DragOverDirection = 'above' | 'below' | null
@@ -44,9 +49,19 @@ function classNames(
 
 interface MatrixViewProps {
   onOpenTaskVisibility: (section: TaskCategory, trigger: HTMLElement) => void
+  onAddCustomTask: (category: TaskCategory, trigger: HTMLElement) => void
+  onEditCustomTask: (
+    task: DisplayTask,
+    category: TaskCategory,
+    trigger: HTMLElement,
+  ) => void
 }
 
-export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
+export function MatrixView({
+  onOpenTaskVisibility,
+  onAddCustomTask,
+  onEditCustomTask,
+}: MatrixViewProps) {
   const { store, status, dispatch } = useStore()
   const isReadOnly = status === 'readonly'
   const characters = store.characters
@@ -93,6 +108,10 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
           onOpenTaskVisibility={(trigger) =>
             onOpenTaskVisibility(category, trigger)
           }
+          onAddCustomTask={(trigger) => onAddCustomTask(category, trigger)}
+          onEditCustomTask={(task, trigger) =>
+            onEditCustomTask(task, category, trigger)
+          }
         />
       ))}
     </section>
@@ -112,6 +131,8 @@ interface MatrixSectionProps {
   dispatch: Dispatch
   canOpenTaskVisibility: boolean
   onOpenTaskVisibility: (trigger: HTMLElement) => void
+  onAddCustomTask: (trigger: HTMLElement) => void
+  onEditCustomTask: (task: DisplayTask, trigger: HTMLElement) => void
 }
 
 function MatrixSection({
@@ -127,6 +148,8 @@ function MatrixSection({
   dispatch,
   canOpenTaskVisibility,
   onOpenTaskVisibility,
+  onAddCustomTask,
+  onEditCustomTask,
 }: MatrixSectionProps) {
   const orderedTasks = useMemo(
     () => resolveTaskOrder(tasks, taskOrder),
@@ -290,6 +313,7 @@ function MatrixSection({
   ) => {
     const label = task.label
     const { primary, note } = splitTaskLabel(label)
+    const isCustomTask = task.id.startsWith(CUSTOM_TASK_ID_PREFIX)
     const isDragging = !isCompletedRow && draggedTaskId === task.id
     const isDragOver = !isCompletedRow && dragOverTaskId === task.id
     const dragOverDirection: DragOverDirection =
@@ -346,6 +370,17 @@ function MatrixSection({
           {note !== null && (
             <span className="matrix-task-label-note">{note}</span>
           )}
+          {isCustomTask && (
+            <button
+              type="button"
+              className="matrix-task-edit-button"
+              aria-label={`${label} を編集`}
+              disabled={isReadOnly}
+              onClick={(event) => onEditCustomTask(task, event.currentTarget)}
+            >
+              編集
+            </button>
+          )}
         </th>
         {characters.map((character) => (
           <MatrixCell
@@ -362,15 +397,13 @@ function MatrixSection({
     )
   }
 
-  // A category with zero tasks (static + custom combined) has nothing to
-  // ever show (e.g. milestone before any custom task exists), so the whole
-  // section is omitted rather than rendering a permanently non-functional
-  // empty state. This is distinct from hasVisibleTask below, which covers
-  // "has tasks, but all are hidden via TaskVisibility".
-  if (tasks.length === 0) {
-    return null
-  }
+  const colSpan = characters.length + 2
 
+  // No visible tasks: either the category has zero tasks combined (e.g.
+  // milestone before any custom task exists) or every task is hidden via
+  // TaskVisibility. Either way the section still renders so the add-row
+  // stays reachable as an entry point for creating/restoring a task; the
+  // empty-state message is only shown for the "has tasks, all hidden" case.
   if (!hasVisibleTask) {
     return (
       <div className="matrix-section">
@@ -381,7 +414,21 @@ function MatrixSection({
           canOpenTaskVisibility={canOpenTaskVisibility}
           onOpenTaskVisibility={onOpenTaskVisibility}
         />
-        <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
+        {tasks.length > 0 && (
+          <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
+        )}
+        <div className="matrix-scroll">
+          <table className="matrix-table">
+            <MatrixTableHead characters={characters} />
+            <tbody>
+              <AddCustomTaskRow
+                colSpan={colSpan}
+                isReadOnly={isReadOnly}
+                onAddCustomTask={onAddCustomTask}
+              />
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }
@@ -400,40 +447,21 @@ function MatrixSection({
       </p>
       <div className="matrix-scroll">
         <table className="matrix-table">
-          <thead>
-            <tr>
-              <th scope="col" className="matrix-handle-header">
-                <span className="visually-hidden">並べ替え</span>
-              </th>
-              <th scope="col" className="matrix-corner-cell">
-                タスク
-              </th>
-              {characters.map((character) => (
-                <th
-                  scope="col"
-                  className="matrix-character-header"
-                  key={character.id}
-                  title={character.name}
-                >
-                  <span className="matrix-character-name">
-                    {character.name}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
+          <MatrixTableHead characters={characters} />
           <tbody>
             {normalTaskEntries.map(({ task, index }, position) =>
               renderTaskRow(task, index, false, position),
             )}
+            <AddCustomTaskRow
+              colSpan={colSpan}
+              isReadOnly={isReadOnly}
+              onAddCustomTask={onAddCustomTask}
+            />
           </tbody>
           {completedTaskEntries.length > 0 && (
             <tbody>
               <tr className="matrix-accordion-toggle-row">
-                <td
-                  className="matrix-accordion-toggle-cell"
-                  colSpan={characters.length + 2}
-                >
+                <td className="matrix-accordion-toggle-cell" colSpan={colSpan}>
                   <button
                     type="button"
                     className="matrix-accordion-toggle"
@@ -458,6 +486,62 @@ function MatrixSection({
         </table>
       </div>
     </div>
+  )
+}
+
+interface MatrixTableHeadProps {
+  characters: Character[]
+}
+
+function MatrixTableHead({ characters }: MatrixTableHeadProps) {
+  return (
+    <thead>
+      <tr>
+        <th scope="col" className="matrix-handle-header">
+          <span className="visually-hidden">並べ替え</span>
+        </th>
+        <th scope="col" className="matrix-corner-cell">
+          タスク
+        </th>
+        {characters.map((character) => (
+          <th
+            scope="col"
+            className="matrix-character-header"
+            key={character.id}
+            title={character.name}
+          >
+            <span className="matrix-character-name">{character.name}</span>
+          </th>
+        ))}
+      </tr>
+    </thead>
+  )
+}
+
+interface AddCustomTaskRowProps {
+  colSpan: number
+  isReadOnly: boolean
+  onAddCustomTask: (trigger: HTMLElement) => void
+}
+
+function AddCustomTaskRow({
+  colSpan,
+  isReadOnly,
+  onAddCustomTask,
+}: AddCustomTaskRowProps) {
+  return (
+    <tr className="matrix-add-row">
+      <td colSpan={colSpan}>
+        <button
+          type="button"
+          className="matrix-add-row-button"
+          disabled={isReadOnly}
+          onClick={(event) => onAddCustomTask(event.currentTarget)}
+        >
+          {ADD_CUSTOM_TASK_LABEL}
+        </button>
+      </td>
+    </tr>
   )
 }
 

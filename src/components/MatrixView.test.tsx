@@ -51,12 +51,18 @@ const renderWithContext = (overrides: Partial<StoreContextValue> = {}) => {
     ...overrides,
   }
   const onOpenTaskVisibility = vi.fn()
+  const onAddCustomTask = vi.fn()
+  const onEditCustomTask = vi.fn()
   render(
     <StoreContext.Provider value={value}>
-      <MatrixView onOpenTaskVisibility={onOpenTaskVisibility} />
+      <MatrixView
+        onOpenTaskVisibility={onOpenTaskVisibility}
+        onAddCustomTask={onAddCustomTask}
+        onEditCustomTask={onEditCustomTask}
+      />
     </StoreContext.Provider>,
   )
-  return { dispatch, onOpenTaskVisibility }
+  return { dispatch, onOpenTaskVisibility, onAddCustomTask, onEditCustomTask }
 }
 
 // Focus-retention after a keyboard reorder depends on the row actually
@@ -72,7 +78,11 @@ const StatefulMatrixView = ({ initialStore }: { initialStore: Store }) => {
   }
   return (
     <StoreContext.Provider value={value}>
-      <MatrixView onOpenTaskVisibility={vi.fn()} />
+      <MatrixView
+        onOpenTaskVisibility={vi.fn()}
+        onAddCustomTask={vi.fn()}
+        onEditCustomTask={vi.fn()}
+      />
     </StoreContext.Provider>
   )
 }
@@ -819,11 +829,19 @@ describe('MatrixView / readonly mode', () => {
 })
 
 describe('MatrixView / custom tasks', () => {
-  it('omits the milestone section entirely when there are no custom tasks', () => {
+  it('renders the milestone section heading and an add-row, but no table rows, when there are no custom tasks', () => {
     renderWithContext({ store: storeWithCharacter() })
     expect(
-      screen.queryByRole('heading', { name: 'マイルストーン' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('heading', { name: 'マイルストーン' }),
+    ).toBeInTheDocument()
+    expect(
+      within(getSection('マイルストーン')).queryAllByRole('rowheader'),
+    ).toHaveLength(0)
+    expect(
+      within(getSection('マイルストーン')).getByRole('button', {
+        name: '＋ タスクを追加',
+      }),
+    ).toBeInTheDocument()
   })
 
   it('renders a milestone section once a milestone custom task exists', () => {
@@ -912,5 +930,106 @@ describe('MatrixView / custom tasks', () => {
     fireEvent.drop(target, { dataTransfer })
 
     expect(dispatch).toHaveBeenCalledWith(moveTask('milestone', 'custom_m1', 1))
+  })
+
+  it('shows an add-row alongside the empty-state message when every task in a section is hidden', () => {
+    const allDailyIds = DAILY_TASKS.map((task) => task.id)
+    renderWithContext({
+      store: storeWithCharacter({ hiddenTaskIds: allDailyIds }),
+    })
+    const dailySection = getSection('デイリー')
+    expect(
+      within(dailySection).getByText(NO_VISIBLE_TASKS_MESSAGE),
+    ).toBeInTheDocument()
+    expect(
+      within(dailySection).getByRole('button', { name: '＋ タスクを追加' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows an add-row at the end of a normal section table', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    const dailySection = getSection('デイリー')
+    const rows = within(dailySection).getAllByRole('row')
+    const lastRow = rows[rows.length - 1]
+    expect(
+      within(lastRow).getByRole('button', { name: '＋ タスクを追加' }),
+    ).toBeInTheDocument()
+  })
+
+  it('calls onAddCustomTask with the section category when the add-row button is clicked', async () => {
+    const { onAddCustomTask } = renderWithContext({
+      store: storeWithCharacter(),
+    })
+    const dailySection = getSection('デイリー')
+    const button = within(dailySection).getByRole('button', {
+      name: '＋ タスクを追加',
+    })
+    await userEvent.click(button)
+    expect(onAddCustomTask).toHaveBeenCalledWith('daily', button)
+  })
+
+  it('disables the add-row button in readonly mode', () => {
+    renderWithContext({ store: storeWithCharacter(), status: 'readonly' })
+    const dailySection = getSection('デイリー')
+    expect(
+      within(dailySection).getByRole('button', { name: '＋ タスクを追加' }),
+    ).toBeDisabled()
+  })
+
+  it('renders an edit trigger for a custom task row but not for a static task row', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_d1',
+      category: 'daily',
+      name: 'カスタムデイリー',
+    })
+    renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    expect(
+      within(getRowByLabel('カスタムデイリー')).getByRole('button', {
+        name: 'カスタムデイリー を編集',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(getRowByLabel(getTaskLabel(DAILY_TASKS[0]))).queryByRole(
+        'button',
+        { name: `${getTaskLabel(DAILY_TASKS[0])} を編集` },
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it('calls onEditCustomTask with the custom task and its category when the edit trigger is clicked', async () => {
+    const customTask = buildCustomTask({
+      id: 'custom_d1',
+      category: 'daily',
+      name: 'カスタムデイリー',
+    })
+    const { onEditCustomTask } = renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    const button = screen.getByRole('button', {
+      name: 'カスタムデイリー を編集',
+    })
+    await userEvent.click(button)
+    expect(onEditCustomTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'custom_d1', label: 'カスタムデイリー' }),
+      'daily',
+      button,
+    )
+  })
+
+  it('disables the edit trigger in readonly mode', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_d1',
+      category: 'daily',
+      name: 'カスタムデイリー',
+    })
+    renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+      status: 'readonly',
+    })
+    expect(
+      screen.getByRole('button', { name: 'カスタムデイリー を編集' }),
+    ).toBeDisabled()
   })
 })

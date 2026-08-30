@@ -1,5 +1,7 @@
 import './App.css'
 import { useRef, useState } from 'react'
+import { CustomTaskModal } from './components/CustomTaskModal'
+import type { DisplayTask } from './domain/displayTasks'
 import type { TaskCategory } from './data/taskLookup'
 import { useTheme } from './hooks/useTheme'
 import { SettingsModal } from './components/SettingsModal'
@@ -8,12 +10,19 @@ import { SummaryPanel } from './components/SummaryPanel'
 import { MatrixView } from './components/MatrixView'
 import { StoreProvider } from './store/StoreProvider'
 
+type CustomTaskModalState =
+  | { mode: 'add'; category: TaskCategory }
+  | { mode: 'edit'; category: TaskCategory; taskId: string }
+
 function App() {
   const { theme, toggleTheme } = useTheme()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [settingsFocusSection, setSettingsFocusSection] =
     useState<TaskCategory | null>(null)
+  const [customTaskModalState, setCustomTaskModalState] =
+    useState<CustomTaskModalState | null>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
+  const customTaskTriggerRef = useRef<HTMLElement | null>(null)
   const settingsToggleRef = useRef<HTMLButtonElement | null>(null)
 
   const openSettings = (trigger: HTMLElement) => {
@@ -36,6 +45,28 @@ function App() {
         ? trigger
         : settingsToggleRef.current
     focusTarget?.focus()
+  }
+
+  const openAddCustomTask = (category: TaskCategory, trigger: HTMLElement) => {
+    customTaskTriggerRef.current = trigger
+    setCustomTaskModalState({ mode: 'add', category })
+  }
+
+  const openEditCustomTask = (
+    task: DisplayTask,
+    category: TaskCategory,
+    trigger: HTMLElement,
+  ) => {
+    customTaskTriggerRef.current = trigger
+    setCustomTaskModalState({ mode: 'edit', category, taskId: task.id })
+  }
+
+  const closeCustomTaskModal = () => {
+    setCustomTaskModalState(null)
+    const trigger = customTaskTriggerRef.current
+    if (trigger !== null && trigger.isConnected) {
+      trigger.focus()
+    }
   }
 
   return (
@@ -75,12 +106,28 @@ function App() {
         <main className="app-layout">
           <StatusBanner />
           <SummaryPanel />
-          <MatrixView onOpenTaskVisibility={openTaskVisibility} />
+          <MatrixView
+            onOpenTaskVisibility={openTaskVisibility}
+            onAddCustomTask={openAddCustomTask}
+            onEditCustomTask={openEditCustomTask}
+          />
         </main>
         {isSettingsOpen && (
           <SettingsModal
             onClose={closeSettings}
             initialFocusSection={settingsFocusSection}
+          />
+        )}
+        {customTaskModalState !== null && (
+          <CustomTaskModal
+            mode={customTaskModalState.mode}
+            category={customTaskModalState.category}
+            taskId={
+              customTaskModalState.mode === 'edit'
+                ? customTaskModalState.taskId
+                : undefined
+            }
+            onClose={closeCustomTaskModal}
           />
         )}
       </div>
