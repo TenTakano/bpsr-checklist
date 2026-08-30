@@ -428,10 +428,34 @@ describe('reducer / updateCustomTask', () => {
     )
     expect(result).toBe(withTask)
   })
+
+  it('updates only the targeted task when multiple custom tasks exist', () => {
+    const withTasks = [
+      addCustomTask('Task A', 'blue', 1, 'daily'),
+      addCustomTask('Task B', 'green', 2, 'weekly'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+
+    const result = reducer(
+      withTasks,
+      updateCustomTask(taskA.id, 'Renamed', 'gold', 5, 'milestone'),
+    )
+
+    expect(result.customTasks).toEqual([
+      {
+        id: taskA.id,
+        name: 'Renamed',
+        color: 'gold',
+        maxProgress: 5,
+        category: 'milestone',
+      },
+      taskB,
+    ])
+  })
 })
 
 describe('reducer / removeCustomTask', () => {
-  it('removes the custom task but keeps unrelated progress entries intact', () => {
+  it('removes the custom task and cleans up its progress entries across characters', () => {
     const withTask = reducer(
       emptyStore(),
       addCustomTask('Original', 'blue', 1, 'daily'),
@@ -439,17 +463,40 @@ describe('reducer / removeCustomTask', () => {
     const id = withTask.customTasks?.[0].id as string
     const withProgress: typeof withTask = {
       ...withTask,
-      progress: { 'char-1': { [id]: 1 } },
+      progress: {
+        'char-1': { [id]: 1, [DAILY_TASK_ID]: 2 },
+        'char-2': { [id]: 3 },
+      },
     }
     const result = reducer(withProgress, removeCustomTask(id))
 
     expect(result.customTasks).toEqual([])
-    expect(result.progress).toEqual({ 'char-1': { [id]: 1 } })
+    expect(result.progress).toEqual({
+      'char-1': { [DAILY_TASK_ID]: 2 },
+      'char-2': {},
+    })
   })
 
   it('is a no-op when the custom task does not exist', () => {
     const store = emptyStore()
     expect(reducer(store, removeCustomTask('missing'))).toBe(store)
+  })
+
+  it('does not remove or affect other custom tasks when multiple exist', () => {
+    const withTasks = [
+      addCustomTask('Task A', 'blue', 1, 'daily'),
+      addCustomTask('Task B', 'green', 2, 'weekly'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+    const withProgress: typeof withTasks = {
+      ...withTasks,
+      progress: { 'char-1': { [taskA.id]: 1, [taskB.id]: 2 } },
+    }
+
+    const result = reducer(withProgress, removeCustomTask(taskA.id))
+
+    expect(result.customTasks).toEqual([taskB])
+    expect(result.progress).toEqual({ 'char-1': { [taskB.id]: 2 } })
   })
 })
 

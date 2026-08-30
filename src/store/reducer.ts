@@ -1,4 +1,8 @@
-import { MAX_CUSTOM_TASK_NAME_LENGTH } from '../data/customTaskSchema'
+import {
+  MAX_CUSTOM_TASK_MAX_PROGRESS,
+  MAX_CUSTOM_TASK_NAME_LENGTH,
+  MIN_CUSTOM_TASK_MAX_PROGRESS,
+} from '../data/customTaskSchema'
 import { PERIOD_START_RESOLVERS } from '../data/resetConfig'
 import { RESET_CYCLES, type ResetCycle } from '../data/resetCycle'
 import { getTaskCategory, type TaskCategory } from '../data/taskLookup'
@@ -27,7 +31,9 @@ const normalizeName = (name: string): string | null =>
   normalizeTrimmedText(name, MAX_CHARACTER_NAME_LENGTH)
 
 const isValidMaxProgress = (value: number): boolean =>
-  Number.isInteger(value) && value >= 1 && value <= 1000
+  Number.isInteger(value) &&
+  value >= MIN_CUSTOM_TASK_MAX_PROGRESS &&
+  value <= MAX_CUSTOM_TASK_MAX_PROGRESS
 
 const createCustomTaskId = (): string =>
   `custom_${crypto.randomUUID().replaceAll('-', '_')}`
@@ -52,6 +58,23 @@ const removeProgressEntry = (
 
 const hasCharacter = (store: Store, id: string): boolean =>
   store.characters.some((character) => character.id === id)
+
+const removeTaskFromProgress = (
+  progress: Store['progress'],
+  taskId: string,
+): Store['progress'] => {
+  const next: Store['progress'] = {}
+  for (const [characterId, taskProgress] of Object.entries(progress)) {
+    if (!(taskId in taskProgress)) {
+      next[characterId] = taskProgress
+      continue
+    }
+    next[characterId] = Object.fromEntries(
+      Object.entries(taskProgress).filter(([id]) => id !== taskId),
+    )
+  }
+  return next
+}
 
 const shouldResetPeriod = (
   storedPeriodStart: string | undefined,
@@ -360,6 +383,7 @@ export const reducer = (store: Store, action: Action): Store => {
       return {
         ...store,
         customTasks: currentCustomTasks.filter((task) => task.id !== action.id),
+        progress: removeTaskFromProgress(store.progress, action.id),
       }
     }
   }
