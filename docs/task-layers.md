@@ -63,6 +63,14 @@ resolver（`projectTasksResolver.ts`）はフォールバック計算を一切�
 - 除外機構: `EXCLUDED_UPSTREAM_IDS` は「プロジェクトタスクとして意図的に出さない」upstream id の集合。未マッピング検出の対象から除外される。`EXCLUDED_UPSTREAM_IDS` の id が `projectTasks.ts` の何らかの `upstreamIds` と重複している場合、および `EXCLUDED_UPSTREAM_IDS` の id が `upstreamTasks.json` に実在しない場合は、それぞれテストが失敗する。
 - 独自タスクの必須フィールド: `upstreamIds` が空のエントリは `label` / `color` / `maxProgress` / `optional` / `resetCycle` の 5 フィールドすべての明示指定が必須。いずれか欠けている場合は検証エラー（テスト失敗）になる。
 
+## 曜日限定タスクの表示フィルタ（`availableWeekdays`）
+
+`availableWeekdays` を持つタスク（例: `guild_hunt` / `guild_dance`）は、現在の曜日を含まない場合に非表示（グレーアウトではなく行自体が描画されない）になります。
+
+- 適用範囲: `MatrixView` と `SummaryPanel`（分母からも除外）が対象です。`TaskVisibility`（表示タスク設定モーダル）は対象外で、曜日にかかわらず常に全タスクが一覧表示されます。いつでも `hiddenTaskIds` による手動の表示/非表示設定を変更できるようにするための意図的な除外です。
+- 判定基準: 現在時刻の暦日（`getDay()`）ではなく、`store.resetState.dailyPeriodStart`（JST 5:00 起点の「ゲーム日」）から導出した曜日（`getWeekdayJstFromPeriodStart`、`src/data/resetConfig.ts`）を使います。デイリーリセット境界とタスクの出現/非出現の切り替えタイミングを一致させるためで、暦日（JST 0:00 切替）を使うと 0:00〜5:00 の間に表示とリセットのタイミングがずれます。
+- 並べ替え（ドラッグ&ドロップ・キーボード操作）への影響: 曜日非表示のタスクも `hiddenTaskIds` と同様「メンバーシップ判定のみ」で除外され、`moveTask` の index 計算に使う配列（未フィルタの全順序）自体には影響しません。
+
 ## #108（曜日限定デイリータスク対応）との接続点
 
 - resetCycle と表示セクションの分離については前節「表示セクションと resetCycle の分離」を参照。

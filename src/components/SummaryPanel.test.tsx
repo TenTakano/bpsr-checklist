@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
-import { emptyStore, storeWithCharacter } from '../test/fixtures'
+import {
+  emptyStore,
+  MONDAY_RESET_STATE,
+  storeWithCharacter,
+} from '../test/fixtures'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import { SummaryPanel } from './SummaryPanel'
@@ -14,6 +18,18 @@ const DAILY_HIDDEN_TASK_IDS = DAILY_TASK_IDS.filter(
   (id) => id !== DAILY_TARGET_TASK.id,
 )
 const WEEKLY_HIDDEN_TASK_IDS = WEEKLY_TASKS.map((task) => task.id)
+
+// MONDAY_RESET_STATE (see fixtures.ts) makes these tasks unavailable, so the
+// daily denominator drops by however many of them exist in DAILY_TASKS.
+const WEEKDAY_UNAVAILABLE_TASK_IDS = ['guild_hunt', 'guild_dance']
+const WEEKDAY_UNAVAILABLE_TASK_COUNT = DAILY_TASKS.filter((task) =>
+  WEEKDAY_UNAVAILABLE_TASK_IDS.includes(task.id),
+).length
+if (WEEKDAY_UNAVAILABLE_TASK_COUNT !== WEEKDAY_UNAVAILABLE_TASK_IDS.length) {
+  throw new Error(
+    'guild_hunt/guild_dance must exist in DAILY_TASKS for weekday-limited task tests',
+  )
+}
 
 const renderWithContext = (overrides: Partial<StoreContextValue> = {}) => {
   const dispatch = vi.fn()
@@ -66,6 +82,18 @@ describe('SummaryPanel / progress bar', () => {
       name: 'ウィークリーの全体進捗',
     })
     expect(weeklyProgressBar).toHaveAttribute('aria-valuenow', '0')
+  })
+
+  it('excludes weekday-unavailable tasks from the daily denominator', () => {
+    renderWithContext({
+      store: storeWithCharacter({ resetState: MONDAY_RESET_STATE }),
+    })
+
+    expect(
+      screen.getByText(
+        `0 / ${DAILY_TASK_IDS.length - WEEKDAY_UNAVAILABLE_TASK_COUNT}`,
+      ),
+    ).toBeInTheDocument()
   })
 })
 

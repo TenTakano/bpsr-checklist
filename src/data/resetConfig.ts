@@ -52,3 +52,18 @@ export const PERIOD_START_RESOLVERS: Record<ResetCycle, (now: Date) => string> =
     daily: getCurrentDailyPeriodStart,
     weekly: getCurrentWeeklyPeriodStart,
   }
+
+// Derives the weekday from the game day (dailyPeriodStart), not the current
+// calendar day, so weekday-limited task visibility flips exactly at the
+// JST 05:00 reset boundary instead of at JST 00:00 (see task-layers.md).
+export const getWeekdayJstFromPeriodStart = (periodStartIso: string): number =>
+  toJstShifted(new Date(periodStartIso)).getUTCDay()
+
+// undefined dailyPeriodStart (unreachable in practice, only the theoretical
+// initial state) fails open to no weekday filtering.
+export const getCurrentWeekdayJst = (
+  dailyPeriodStart: string | undefined,
+): number | undefined =>
+  dailyPeriodStart === undefined
+    ? undefined
+    : getWeekdayJstFromPeriodStart(dailyPeriodStart)
