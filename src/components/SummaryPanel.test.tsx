@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
-import { emptyStore, storeWithCharacter } from '../test/fixtures'
+import {
+  buildCustomTask,
+  emptyStore,
+  storeWithCharacter,
+} from '../test/fixtures'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import { SummaryPanel } from './SummaryPanel'
@@ -87,5 +91,40 @@ describe('SummaryPanel / per-character list', () => {
 
     expect(screen.getAllByText('Alice')).toHaveLength(2)
     expect(screen.getAllByText('Bob')).toHaveLength(2)
+  })
+})
+
+describe('SummaryPanel / custom tasks', () => {
+  it('omits the milestone row entirely when there are no custom tasks', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    expect(
+      screen.queryByRole('progressbar', { name: 'マイルストーンの全体進捗' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders a milestone row and counts a milestone custom task once one exists', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+    })
+    renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    const milestoneProgressBar = screen.getByRole('progressbar', {
+      name: 'マイルストーンの全体進捗',
+    })
+    expect(milestoneProgressBar).toHaveAttribute('aria-valuenow', '0')
+    expect(screen.getByText('0 / 1')).toBeInTheDocument()
+  })
+
+  it('counts a daily custom task alongside the static daily tasks', () => {
+    const customTask = buildCustomTask({ id: 'custom_d1', category: 'daily' })
+    renderWithContext({
+      store: storeWithCharacter({
+        customTasks: [customTask],
+        hiddenTaskIds: DAILY_TASK_IDS,
+      }),
+    })
+    expect(screen.getByText('0 / 1')).toBeInTheDocument()
   })
 })

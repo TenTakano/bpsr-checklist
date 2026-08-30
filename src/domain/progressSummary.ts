@@ -1,7 +1,11 @@
-import type { Task } from '../data/taskSchema'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
 import { isTaskComplete, readProgressValue } from './taskProgress'
+
+export interface ProgressSummaryTask {
+  id: string
+  maxProgress: number
+}
 
 export interface CharacterProgressCount {
   characterId: string
@@ -20,7 +24,7 @@ const calculatePercent = (completed: number, total: number): number =>
   total === 0 ? 0 : Math.round((completed / total) * 100)
 
 export const summarizeCategoryProgress = (
-  tasks: Task[],
+  tasks: ProgressSummaryTask[],
   characters: Character[],
   progress: Store['progress'],
   hiddenTaskIds: string[] | undefined,
