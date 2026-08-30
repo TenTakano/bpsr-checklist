@@ -30,11 +30,13 @@ export const HiddenTaskIdsSchema = z.array(z.string())
 
 export const DetailedCountTaskIdsSchema = z.array(z.string())
 
-// resetState/taskOrder/hiddenTaskIds/detailedCountTaskIds are left as
-// z.unknown().optional() rather than their dedicated schemas so an invalid
-// value degrades to "absent" (see rescueResetState/rescueTaskOrder/
-// rescueHiddenTaskIds/rescueDetailedCountTaskIds in persistence.ts) instead
-// of failing the whole top-level parse.
+export type { CustomTask } from '../data/customTaskSchema'
+
+// resetState/taskOrder/hiddenTaskIds/detailedCountTaskIds/customTasks are
+// left as z.unknown().optional() rather than their dedicated schemas so an
+// invalid value degrades to "absent" (see rescueResetState/rescueTaskOrder/
+// rescueHiddenTaskIds/rescueDetailedCountTaskIds/rescueCustomTasks in
+// persistence.ts) instead of failing the whole top-level parse.
 export const StoreSchema = z.looseObject({
   schemaVersion: z.number().int().min(1),
   taskDataVersion: z.string().min(1).nullable(),
@@ -44,4 +46,5 @@ export const StoreSchema = z.looseObject({
   taskOrder: z.unknown().optional(),
   hiddenTaskIds: z.unknown().optional(),
   detailedCountTaskIds: z.unknown().optional(),
+  customTasks: z.unknown().optional(),
 })

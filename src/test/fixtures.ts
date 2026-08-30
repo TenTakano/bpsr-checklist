@@ -24,6 +24,7 @@ export const storeWithCharacter = (
       | 'taskOrder'
       | 'hiddenTaskIds'
       | 'detailedCountTaskIds'
+      | 'customTasks'
     >
   > = {},
 ): Store => ({
