@@ -1,16 +1,34 @@
 import { z } from 'zod'
-import { findDuplicateIds, TaskIdSchema, type Task } from './taskSchema'
+import {
+  AvailableWeekdaysSchema,
+  findDuplicateIds,
+  TaskIdSchema,
+  type Task,
+} from './taskSchema'
 import { ResetCycleSchema, type ResetCycle } from './resetCycle'
 
-export const ProjectTaskDefinitionSchema = z.strictObject({
-  id: TaskIdSchema,
-  upstreamIds: z.array(TaskIdSchema),
-  label: z.string().min(1),
-  color: z.string().min(1),
-  maxProgress: z.number().int().positive(),
-  optional: z.boolean(),
-  resetCycle: ResetCycleSchema,
-})
+export const ProjectTaskDefinitionSchema = z
+  .strictObject({
+    id: TaskIdSchema,
+    upstreamIds: z.array(TaskIdSchema),
+    label: z.string().min(1),
+    color: z.string().min(1),
+    maxProgress: z.number().int().positive(),
+    optional: z.boolean(),
+    resetCycle: ResetCycleSchema,
+    availableWeekdays: AvailableWeekdaysSchema.optional(),
+  })
+  .superRefine((definition, ctx) => {
+    if (
+      definition.availableWeekdays !== undefined &&
+      definition.resetCycle !== 'daily'
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `availableWeekdays は resetCycle が 'daily' のときのみ指定できます: ${definition.id}`,
+      })
+    }
+  })
 
 export type ProjectTaskDefinition = z.infer<typeof ProjectTaskDefinitionSchema>
 

@@ -185,6 +185,30 @@ describe('resolveProjectTasks', () => {
     ])
   })
 
+  it('includes availableWeekdays in the resolved task when the definition specifies it', () => {
+    const definitions: ProjectTaskDefinition[] = [
+      buildDefinition({ availableWeekdays: [1, 3] }),
+    ]
+    const result = resolveProjectTasks(definitions)
+
+    expect(result.daily[0]).toEqual({
+      id: 'daily_a',
+      label: 'Daily A',
+      color: 'blue',
+      maxProgress: 2,
+      optional: false,
+      resetCycle: 'daily',
+      availableWeekdays: [1, 3],
+    })
+  })
+
+  it('omits availableWeekdays from the resolved task when the definition does not specify it', () => {
+    const definitions: ProjectTaskDefinition[] = [buildDefinition()]
+    const result = resolveProjectTasks(definitions)
+
+    expect(result.daily[0]).not.toHaveProperty('availableWeekdays')
+  })
+
   it('does not throw on definitions that would fail validateProjectTaskDefinitions (e.g. unknown upstreamId, duplicate ids)', () => {
     const definitionsWithUnknownUpstreamId: ProjectTaskDefinition[] = [
       {

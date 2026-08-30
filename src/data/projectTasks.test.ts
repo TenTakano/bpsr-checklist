@@ -13,7 +13,10 @@ import {
 } from './projectTasks'
 import upstreamTasksDocumentRaw from './upstreamTasks.json'
 import { UpstreamTasksDocumentSchema } from './taskSchema'
-import type { ProjectTask } from './projectTaskSchema'
+import {
+  ProjectTaskDefinitionSchema,
+  type ProjectTask,
+} from './projectTaskSchema'
 
 const upstreamDocument = UpstreamTasksDocumentSchema.parse(
   upstreamTasksDocumentRaw,
@@ -35,6 +38,9 @@ for (const definition of PROJECT_TASKS) {
     maxProgress: definition.maxProgress,
     optional: definition.optional,
     resetCycle: definition.resetCycle,
+    ...(definition.availableWeekdays !== undefined && {
+      availableWeekdays: definition.availableWeekdays,
+    }),
   }
 
   if (definition.resetCycle === 'daily') {
@@ -48,6 +54,61 @@ describe('PROJECT_TASKS_BY_RESET_CYCLE (resolved from PROJECT_TASKS)', () => {
   it("resolves PROJECT_TASKS into PROJECT_TASKS_BY_RESET_CYCLE using each entry's own label/color/maxProgress/optional/resetCycle", () => {
     expect(PROJECT_TASKS_BY_RESET_CYCLE.daily).toEqual(expectedDaily)
     expect(PROJECT_TASKS_BY_RESET_CYCLE.weekly).toEqual(expectedWeekly)
+  })
+
+  it.each([
+    ['guild_hunt', [5, 6, 0]],
+    ['guild_dance', [5]],
+  ])(
+    'resolves %s as a daily task with availableWeekdays %j',
+    (id, availableWeekdays) => {
+      const task = PROJECT_TASKS_BY_RESET_CYCLE.daily.find(
+        (dailyTask) => dailyTask.id === id,
+      )
+      expect(task?.availableWeekdays).toEqual(availableWeekdays)
+    },
+  )
+})
+
+describe('ProjectTaskDefinitionSchema availableWeekdays validation', () => {
+  const baseDefinition = {
+    id: 'sample_task',
+    upstreamIds: [] as string[],
+    label: 'Sample Task',
+    color: 'blue',
+    maxProgress: 1,
+    optional: false,
+    resetCycle: 'daily' as const,
+  }
+
+  it.each([
+    ['a value below the valid range', [-1]],
+    ['a value above the valid range', [7]],
+    ['duplicate weekday numbers', [5, 5]],
+    ['an empty array', []],
+  ])('rejects availableWeekdays with %s', (_description, availableWeekdays) => {
+    const result = ProjectTaskDefinitionSchema.safeParse({
+      ...baseDefinition,
+      availableWeekdays,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts a valid non-empty availableWeekdays with no duplicates', () => {
+    const result = ProjectTaskDefinitionSchema.safeParse({
+      ...baseDefinition,
+      availableWeekdays: [5, 6, 0],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects availableWeekdays specified on a non-daily resetCycle', () => {
+    const result = ProjectTaskDefinitionSchema.safeParse({
+      ...baseDefinition,
+      resetCycle: 'weekly',
+      availableWeekdays: [5],
+    })
+    expect(result.success).toBe(false)
   })
 })
 
