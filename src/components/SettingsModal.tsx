@@ -1,6 +1,7 @@
 import { useEffect, useRef, type MouseEvent } from 'react'
 import type { TaskCategory } from '../data/taskLookup'
 import { CharacterManager } from './CharacterManager'
+import { CustomTaskManager } from './CustomTaskManager'
 import { ExportImportPanel } from './ExportImportPanel'
 import { TaskVisibility } from './TaskVisibility'
 
@@ -99,6 +100,7 @@ export function SettingsModal({
         <div className="modal-body">
           <CharacterManager />
           <TaskVisibility />
+          <CustomTaskManager />
           <ExportImportPanel />
         </div>
       </div>

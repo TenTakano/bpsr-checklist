@@ -81,6 +81,30 @@ const removeTaskFromProgress = (
   return next
 }
 
+const removeIdFromTaskOrder = (
+  taskOrder: Store['taskOrder'],
+  taskId: string,
+): Store['taskOrder'] => {
+  if (taskOrder === undefined) {
+    return taskOrder
+  }
+  const next: Store['taskOrder'] = {}
+  let changed = false
+  for (const category of TASK_CATEGORIES) {
+    const order = taskOrder[category]
+    if (order === undefined) {
+      continue
+    }
+    if (!order.includes(taskId)) {
+      next[category] = order
+      continue
+    }
+    changed = true
+    next[category] = order.filter((id) => id !== taskId)
+  }
+  return changed ? next : taskOrder
+}
+
 const shouldResetPeriod = (
   storedPeriodStart: string | undefined,
   currentPeriodStart: string,
@@ -393,6 +417,11 @@ export const reducer = (store: Store, action: Action): Store => {
         ...store,
         customTasks: currentCustomTasks.filter((task) => task.id !== action.id),
         progress: removeTaskFromProgress(store.progress, action.id),
+        taskOrder: removeIdFromTaskOrder(store.taskOrder, action.id),
+        hiddenTaskIds: store.hiddenTaskIds?.filter((id) => id !== action.id),
+        detailedCountTaskIds: store.detailedCountTaskIds?.filter(
+          (id) => id !== action.id,
+        ),
       }
     }
   }

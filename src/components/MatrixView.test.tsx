@@ -859,7 +859,7 @@ describe('MatrixView / custom tasks', () => {
     expect(screen.getByTitle('ギルド討伐')).toBeInTheDocument()
   })
 
-  it('does not render the 表示タスク設定 button for the milestone section, since TaskVisibility has no milestone target yet', () => {
+  it('does not render the 表示タスク設定 button for the milestone section, since TaskVisibility has no milestone target', () => {
     const customTask = buildCustomTask({
       id: 'custom_m1',
       category: 'milestone',
