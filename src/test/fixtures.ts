@@ -1,3 +1,4 @@
+import type { CustomTask } from '../data/customTaskSchema'
 import type { Character } from '../store/schema'
 import type { Store } from '../store/types'
 
@@ -13,6 +14,15 @@ export const DEFAULT_CHARACTER: Character = {
   name: 'Alice',
   createdAt: '2026-01-01T00:00:00.000Z',
 }
+
+export const buildCustomTask = (
+  overrides: Partial<CustomTask> & Pick<CustomTask, 'id' | 'category'>,
+): CustomTask => ({
+  name: overrides.id,
+  color: 'blue',
+  maxProgress: 1,
+  ...overrides,
+})
 
 export const storeWithCharacter = (
   overrides: Partial<
