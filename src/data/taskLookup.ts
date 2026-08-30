@@ -1,7 +1,7 @@
 import { PROJECT_TASKS_BY_RESET_CYCLE } from './projectTasksResolver'
 import { RESET_CYCLES, type ResetCycle } from './resetCycle'
 
-export type TaskCategory = ResetCycle
+export type TaskCategory = ResetCycle | 'milestone'
 
 type TaskCategoryResolver = (taskId: string) => TaskCategory | null
 

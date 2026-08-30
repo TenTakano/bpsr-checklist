@@ -55,6 +55,12 @@ describe('resolveTaskOrderIds', () => {
   })
 })
 
+describe('resolveTaskOrderIds', () => {
+  it('returns no ids for the milestone category', () => {
+    expect(resolveTaskOrderIds('milestone', undefined)).toEqual([])
+  })
+})
+
 describe('moveIdInOrder', () => {
   it('moves an id later in the array', () => {
     expect(moveIdInOrder(['a', 'b', 'c'], 'a', 2)).toEqual(['b', 'c', 'a'])

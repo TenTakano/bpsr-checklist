@@ -2,6 +2,14 @@ import { PROJECT_TASKS_BY_RESET_CYCLE } from './projectTasksResolver'
 import type { ProjectTask } from './projectTaskSchema'
 import type { TaskCategory } from './taskLookup'
 
+// milestone has no fixed tasks of its own (it consists solely of custom
+// tasks), so it is pinned to an empty array for now. This entry is required
+// to satisfy TypeScript's Record exhaustiveness check.
+const TASKS_BY_CATEGORY: Record<TaskCategory, ProjectTask[]> = {
+  ...PROJECT_TASKS_BY_RESET_CYCLE,
+  milestone: [],
+}
+
 export function resolveTaskOrder(
   tasks: ProjectTask[],
   order: string[] | undefined,
@@ -36,7 +44,7 @@ export function resolveTaskOrderIds(
   category: TaskCategory,
   order: string[] | undefined,
 ): string[] {
-  return resolveTaskOrder(PROJECT_TASKS_BY_RESET_CYCLE[category], order).map(
+  return resolveTaskOrder(TASKS_BY_CATEGORY[category], order).map(
     (task) => task.id,
   )
 }

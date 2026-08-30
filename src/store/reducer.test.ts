@@ -232,6 +232,12 @@ describe('reducer / moveTask', () => {
     const result = reducer(store, moveTask('daily', DAILY_TASK_IDS[0], 5))
     expect(result.taskOrder?.daily).not.toContain('ghost_task')
   })
+
+  it('is a no-op for the milestone section', () => {
+    const store = emptyStore()
+    const result = reducer(store, moveTask('milestone', 'any-task', 0))
+    expect(result).toBe(store)
+  })
 })
 
 describe('reducer / setTaskHidden', () => {
