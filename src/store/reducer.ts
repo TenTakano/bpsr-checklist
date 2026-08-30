@@ -1,22 +1,36 @@
+import { MAX_CUSTOM_TASK_NAME_LENGTH } from '../data/customTaskSchema'
 import { PERIOD_START_RESOLVERS } from '../data/resetConfig'
 import { RESET_CYCLES, type ResetCycle } from '../data/resetCycle'
-import { getTaskCategory } from '../data/taskLookup'
+import { getTaskCategory, type TaskCategory } from '../data/taskLookup'
 import { moveIdInOrder, resolveTaskOrderIds } from '../data/taskOrder'
 import type { Action } from './actions'
 import {
   MAX_CHARACTER_NAME_LENGTH,
   type Character,
+  type CustomTask,
   type ResetState,
 } from './schema'
 import type { Store } from './types'
 
-const normalizeName = (name: string): string | null => {
-  const trimmed = name.trim()
-  if (trimmed.length === 0 || trimmed.length > MAX_CHARACTER_NAME_LENGTH) {
+const normalizeTrimmedText = (
+  value: string,
+  maxLength: number,
+): string | null => {
+  const trimmed = value.trim()
+  if (trimmed.length === 0 || trimmed.length > maxLength) {
     return null
   }
   return trimmed
 }
+
+const normalizeName = (name: string): string | null =>
+  normalizeTrimmedText(name, MAX_CHARACTER_NAME_LENGTH)
+
+const isValidMaxProgress = (value: number): boolean =>
+  Number.isInteger(value) && value >= 1 && value <= 1000
+
+const createCustomTaskId = (): string =>
+  `custom_${crypto.randomUUID().replaceAll('-', '_')}`
 
 const DUPLICATE_NAME_SUFFIX = ' のコピー'
 
@@ -56,10 +70,17 @@ interface RemoveCategoriesResult {
   changed: boolean
 }
 
+const buildCustomTaskCategoryMap = (
+  customTasks: Store['customTasks'],
+): Map<string, TaskCategory> =>
+  new Map((customTasks ?? []).map((task) => [task.id, task.category]))
+
 const removeCategoriesFromProgress = (
   progress: Store['progress'],
   categoriesToReset: ReadonlySet<ResetCycle>,
+  customTasks: Store['customTasks'],
 ): RemoveCategoriesResult => {
+  const customTaskCategoryMap = buildCustomTaskCategoryMap(customTasks)
   const nextProgress: Store['progress'] = {}
   let changed = false
 
@@ -67,10 +88,8 @@ const removeCategoriesFromProgress = (
     const remaining: Record<string, number> = {}
     let characterChanged = false
     for (const [taskId, value] of Object.entries(taskProgress)) {
-      const category = getTaskCategory(taskId)
-      // getTaskCategory never actually returns 'milestone' (see taskLookup.ts),
-      // but this check narrows TaskCategory to ResetCycle so categoriesToReset.has
-      // type-checks.
+      const category =
+        customTaskCategoryMap.get(taskId) ?? getTaskCategory(taskId)
       if (
         category !== null &&
         category !== 'milestone' &&
@@ -119,6 +138,7 @@ export const evaluateResetState = (store: Store, now: Date): Store => {
     const result = removeCategoriesFromProgress(
       store.progress,
       categoriesToReset,
+      store.customTasks,
     )
     if (result.changed) {
       progress = result.progress
@@ -281,6 +301,66 @@ export const reducer = (store: Store, action: Action): Store => {
         ? [...currentDetailedCountTaskIds, action.taskId]
         : currentDetailedCountTaskIds.filter((id) => id !== action.taskId)
       return { ...store, detailedCountTaskIds }
+    }
+
+    case 'addCustomTask': {
+      const name = normalizeTrimmedText(
+        action.name,
+        MAX_CUSTOM_TASK_NAME_LENGTH,
+      )
+      if (name === null || !isValidMaxProgress(action.maxProgress)) {
+        return store
+      }
+      const customTask: CustomTask = {
+        id: createCustomTaskId(),
+        name,
+        color: action.color,
+        maxProgress: action.maxProgress,
+        category: action.category,
+      }
+      return {
+        ...store,
+        customTasks: [...(store.customTasks ?? []), customTask],
+      }
+    }
+
+    case 'updateCustomTask': {
+      const name = normalizeTrimmedText(
+        action.name,
+        MAX_CUSTOM_TASK_NAME_LENGTH,
+      )
+      if (name === null || !isValidMaxProgress(action.maxProgress)) {
+        return store
+      }
+      const currentCustomTasks = store.customTasks ?? []
+      if (!currentCustomTasks.some((task) => task.id === action.id)) {
+        return store
+      }
+      return {
+        ...store,
+        customTasks: currentCustomTasks.map((task) =>
+          task.id === action.id
+            ? {
+                ...task,
+                name,
+                color: action.color,
+                maxProgress: action.maxProgress,
+                category: action.category,
+              }
+            : task,
+        ),
+      }
+    }
+
+    case 'removeCustomTask': {
+      const currentCustomTasks = store.customTasks ?? []
+      if (!currentCustomTasks.some((task) => task.id === action.id)) {
+        return store
+      }
+      return {
+        ...store,
+        customTasks: currentCustomTasks.filter((task) => task.id !== action.id),
+      }
     }
   }
 }
