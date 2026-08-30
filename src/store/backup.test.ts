@@ -257,6 +257,25 @@ describe('parseBackupFile / import size limits', () => {
     })
   })
 
+  it('rejects a milestone taskOrder section exceeding MAX_IMPORT_TASK_ORDER_ENTRIES', () => {
+    const raw = buildRaw({
+      characters: [],
+      progress: {},
+      taskOrder: {
+        daily: [],
+        weekly: [],
+        milestone: Array.from(
+          { length: MAX_IMPORT_TASK_ORDER_ENTRIES + 1 },
+          (_, index) => `custom_task_${index}`,
+        ),
+      },
+    })
+    expect(parseBackupFile(raw)).toEqual({
+      status: 'error',
+      message: TOO_MANY_ELEMENTS_MESSAGE,
+    })
+  })
+
   it('rejects hiddenTaskIds exceeding MAX_IMPORT_HIDDEN_TASK_IDS', () => {
     const raw = buildRaw({
       characters: [],

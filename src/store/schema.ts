@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ResetCycleSchema } from '../data/resetCycle'
+import { TaskCategorySchema } from '../data/taskLookup'
 
 export const MAX_CHARACTER_NAME_LENGTH = 50
 
@@ -22,7 +23,10 @@ export const ResetStateSchema = z.record(
 
 export type ResetState = z.infer<typeof ResetStateSchema>
 
-export const TaskOrderSchema = z.record(ResetCycleSchema, z.array(z.string()))
+export const TaskOrderSchema = z.partialRecord(
+  TaskCategorySchema,
+  z.array(z.string()),
+)
 
 export type TaskOrder = z.infer<typeof TaskOrderSchema>
 

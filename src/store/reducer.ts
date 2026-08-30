@@ -5,7 +5,11 @@ import {
 } from '../data/customTaskSchema'
 import { PERIOD_START_RESOLVERS } from '../data/resetConfig'
 import { RESET_CYCLES, type ResetCycle } from '../data/resetCycle'
-import { getTaskCategory, type TaskCategory } from '../data/taskLookup'
+import {
+  getTaskCategory,
+  TASK_CATEGORIES,
+  type TaskCategory,
+} from '../data/taskLookup'
 import { moveIdInOrder, resolveTaskOrderIds } from '../data/taskOrder'
 import type { Action } from './actions'
 import {
@@ -271,14 +275,10 @@ export const reducer = (store: Store, action: Action): Store => {
     }
 
     case 'moveTask': {
-      // taskOrder is keyed by ResetCycle (daily/weekly) only; milestone has
-      // no slot to persist an order into, so reordering is a no-op.
-      if (action.section === 'milestone') {
-        return store
-      }
       const currentOrder = resolveTaskOrderIds(
         action.section,
         store.taskOrder?.[action.section],
+        store.customTasks,
       )
       const nextOrder = moveIdInOrder(
         currentOrder,
@@ -289,13 +289,17 @@ export const reducer = (store: Store, action: Action): Store => {
         return store
       }
       const taskOrder = Object.fromEntries(
-        RESET_CYCLES.map((cycle) => [
-          cycle,
-          cycle === action.section
+        TASK_CATEGORIES.map((category) => [
+          category,
+          category === action.section
             ? nextOrder
-            : resolveTaskOrderIds(cycle, store.taskOrder?.[cycle]),
+            : resolveTaskOrderIds(
+                category,
+                store.taskOrder?.[category],
+                store.customTasks,
+              ),
         ]),
-      ) as Record<ResetCycle, string[]>
+      ) as Record<TaskCategory, string[]>
       return {
         ...store,
         taskOrder,

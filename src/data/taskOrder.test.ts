@@ -5,6 +5,7 @@ import {
   resolveTaskOrder,
   resolveTaskOrderIds,
 } from './taskOrder'
+import { buildCustomTask } from '../test/fixtures'
 
 const buildTask = (id: string): ProjectTask => ({
   id,
@@ -49,15 +50,50 @@ describe('resolveTaskOrder', () => {
 
 describe('resolveTaskOrderIds', () => {
   it('resolves ids for a real upstream category using definition order as fallback', () => {
-    const result = resolveTaskOrderIds('daily', undefined)
+    const result = resolveTaskOrderIds('daily', undefined, undefined)
     expect(result.length).toBeGreaterThan(0)
     expect(new Set(result).size).toBe(result.length)
   })
-})
 
-describe('resolveTaskOrderIds', () => {
-  it('returns no ids for the milestone category', () => {
-    expect(resolveTaskOrderIds('milestone', undefined)).toEqual([])
+  it('returns no ids for the milestone category when there are no custom tasks', () => {
+    expect(resolveTaskOrderIds('milestone', undefined, undefined)).toEqual([])
+  })
+
+  it('appends custom tasks for the matching category after the static tasks, in fallback order', () => {
+    const customTasks = [
+      buildCustomTask({ id: 'custom_m1', category: 'milestone' }),
+      buildCustomTask({ id: 'custom_m2', category: 'milestone' }),
+    ]
+    const result = resolveTaskOrderIds('milestone', undefined, customTasks)
+    expect(result).toEqual(['custom_m1', 'custom_m2'])
+  })
+
+  it('excludes custom tasks belonging to a different category', () => {
+    const customTasks = [
+      buildCustomTask({ id: 'custom_d1', category: 'daily' }),
+      buildCustomTask({ id: 'custom_w1', category: 'weekly' }),
+    ]
+    const result = resolveTaskOrderIds('milestone', undefined, customTasks)
+    expect(result).toEqual([])
+  })
+
+  it('resolves a stored order that interleaves static and custom task ids for the same category', () => {
+    const [firstDailyId, secondDailyId] = resolveTaskOrderIds(
+      'daily',
+      undefined,
+      undefined,
+    )
+    const customTasks = [
+      buildCustomTask({ id: 'custom_d1', category: 'daily' }),
+    ]
+    const result = resolveTaskOrderIds(
+      'daily',
+      [secondDailyId, 'custom_d1', firstDailyId],
+      customTasks,
+    )
+    expect(result[0]).toBe(secondDailyId)
+    expect(result[1]).toBe('custom_d1')
+    expect(result[2]).toBe(firstDailyId)
   })
 })
 
