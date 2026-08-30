@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  TASK_COLOR_LABELS_JA,
   TASK_COLOR_TOKENS,
   TaskColorTokenSchema,
   resolveTaskColor,
@@ -46,5 +47,13 @@ describe('TaskColorTokenSchema', () => {
     expect(TaskColorTokenSchema.safeParse('not_a_real_token').success).toBe(
       false,
     )
+  })
+})
+
+describe('TASK_COLOR_LABELS_JA', () => {
+  it('has a non-empty Japanese label for every known token', () => {
+    for (const token of TASK_COLOR_TOKENS) {
+      expect(TASK_COLOR_LABELS_JA[token]).toBeTruthy()
+    }
   })
 })

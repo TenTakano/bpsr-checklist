@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
+import { MAX_CUSTOM_TASKS } from '../data/customTaskSchema'
 import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
-import { emptyStore, storeWithCharacter } from '../test/fixtures'
+import {
+  buildCustomTask,
+  emptyStore,
+  storeWithCharacter,
+} from '../test/fixtures'
 import {
   addCharacter,
   addCustomTask,
@@ -413,6 +418,15 @@ describe('reducer / addCustomTask', () => {
     } else {
       expect(result).toBe(store)
     }
+  })
+
+  it('rejects adding beyond MAX_CUSTOM_TASKS', () => {
+    const customTasks = Array.from({ length: MAX_CUSTOM_TASKS }, (_, index) =>
+      buildCustomTask({ id: `custom_limit_${index}`, category: 'daily' }),
+    )
+    const store = storeWithCharacter({ customTasks })
+    const result = reducer(store, addCustomTask('Task', 'blue', 1, 'daily'))
+    expect(result).toBe(store)
   })
 })
 

@@ -32,3 +32,19 @@ const FALLBACK_TASK_COLOR = 'var(--task-color-neutral)'
 
 export const resolveTaskColor = (colorToken: string): string =>
   COLOR_TOKEN_MAP.get(colorToken) ?? FALLBACK_TASK_COLOR
+
+// Screen-reader label for each fixed color token, used on the custom task
+// color swatch buttons. Kept independent of labels.ja.json, which maps task
+// ids to task names rather than colors to Japanese names.
+export const TASK_COLOR_LABELS_JA: Record<TaskColorToken, string> = {
+  blue: '青',
+  brown: '茶',
+  dark_purple: '濃紫',
+  gold: '金',
+  green: '緑',
+  grey: '灰',
+  orange: '橙',
+  pearl: '真珠',
+  purple: '紫',
+  yellow: '黄',
+}
