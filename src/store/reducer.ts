@@ -68,7 +68,14 @@ const removeCategoriesFromProgress = (
     let characterChanged = false
     for (const [taskId, value] of Object.entries(taskProgress)) {
       const category = getTaskCategory(taskId)
-      if (category !== null && categoriesToReset.has(category)) {
+      // getTaskCategory never actually returns 'milestone' (see taskLookup.ts),
+      // but this check narrows TaskCategory to ResetCycle so categoriesToReset.has
+      // type-checks.
+      if (
+        category !== null &&
+        category !== 'milestone' &&
+        categoriesToReset.has(category)
+      ) {
         characterChanged = true
       } else {
         remaining[taskId] = value
@@ -221,6 +228,11 @@ export const reducer = (store: Store, action: Action): Store => {
     }
 
     case 'moveTask': {
+      // taskOrder is keyed by ResetCycle (daily/weekly) only; milestone has
+      // no slot to persist an order into, so reordering is a no-op.
+      if (action.section === 'milestone') {
+        return store
+      }
       const currentOrder = resolveTaskOrderIds(
         action.section,
         store.taskOrder?.[action.section],
