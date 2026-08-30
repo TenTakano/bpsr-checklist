@@ -3,14 +3,17 @@ import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import {
   addCharacter,
+  addCustomTask,
   duplicateCharacter,
   evaluateReset,
   moveTask,
   removeCharacter,
+  removeCustomTask,
   renameCharacter,
   setProgress,
   setTaskDetailedCount,
   setTaskHidden,
+  updateCustomTask,
 } from './actions'
 import { evaluateResetState, reducer } from './reducer'
 
@@ -312,6 +315,191 @@ describe('reducer / setTaskDetailedCount', () => {
   })
 })
 
+describe('reducer / addCustomTask', () => {
+  it('appends a custom task with a generated id', () => {
+    const store = emptyStore()
+    const result = reducer(
+      store,
+      addCustomTask('  ギルドクエスト  ', 'blue', 3, 'daily'),
+    )
+    expect(result.customTasks).toHaveLength(1)
+    const task = result.customTasks?.[0]
+    expect(task?.name).toBe('ギルドクエスト')
+    expect(task?.color).toBe('blue')
+    expect(task?.maxProgress).toBe(3)
+    expect(task?.category).toBe('daily')
+    expect(task?.id).toMatch(/^custom_[a-z0-9_]+$/)
+  })
+
+  it('generates distinct ids for successive custom tasks', () => {
+    const store = emptyStore()
+    const first = reducer(store, addCustomTask('Task A', 'blue', 1, 'daily'))
+    const second = reducer(first, addCustomTask('Task B', 'green', 1, 'weekly'))
+    expect(second.customTasks).toHaveLength(2)
+    expect(second.customTasks?.[0].id).not.toBe(second.customTasks?.[1].id)
+  })
+
+  it('rejects an empty (or whitespace-only) name', () => {
+    const store = emptyStore()
+    const result = reducer(store, addCustomTask('   ', 'blue', 1, 'milestone'))
+    expect(result).toBe(store)
+  })
+
+  it('rejects a name longer than 50 characters', () => {
+    const store = emptyStore()
+    const result = reducer(
+      store,
+      addCustomTask('a'.repeat(51), 'blue', 1, 'daily'),
+    )
+    expect(result).toBe(store)
+  })
+
+  it.each([
+    [0, false],
+    [1, true],
+    [1000, true],
+    [1001, false],
+    [1.5, false],
+  ] as const)('maxProgress %s accepted: %s', (maxProgress, expected) => {
+    const store = emptyStore()
+    const result = reducer(
+      store,
+      addCustomTask('Task', 'blue', maxProgress, 'daily'),
+    )
+    if (expected) {
+      expect(result.customTasks).toHaveLength(1)
+    } else {
+      expect(result).toBe(store)
+    }
+  })
+})
+
+describe('reducer / updateCustomTask', () => {
+  it('updates every field of an existing custom task', () => {
+    const withTask = reducer(
+      emptyStore(),
+      addCustomTask('Original', 'blue', 1, 'daily'),
+    )
+    const id = withTask.customTasks?.[0].id as string
+    const result = reducer(
+      withTask,
+      updateCustomTask(id, 'Renamed', 'green', 5, 'weekly'),
+    )
+    expect(result.customTasks?.[0]).toEqual({
+      id,
+      name: 'Renamed',
+      color: 'green',
+      maxProgress: 5,
+      category: 'weekly',
+    })
+  })
+
+  it('is a no-op when the custom task does not exist', () => {
+    const store = emptyStore()
+    const result = reducer(
+      store,
+      updateCustomTask('missing', 'Renamed', 'green', 5, 'weekly'),
+    )
+    expect(result).toBe(store)
+  })
+
+  it('is a no-op when the new name is empty after trim', () => {
+    const withTask = reducer(
+      emptyStore(),
+      addCustomTask('Original', 'blue', 1, 'daily'),
+    )
+    const id = withTask.customTasks?.[0].id as string
+    const result = reducer(
+      withTask,
+      updateCustomTask(id, '   ', 'green', 5, 'weekly'),
+    )
+    expect(result).toBe(withTask)
+  })
+
+  it('is a no-op when maxProgress is out of range', () => {
+    const withTask = reducer(
+      emptyStore(),
+      addCustomTask('Original', 'blue', 1, 'daily'),
+    )
+    const id = withTask.customTasks?.[0].id as string
+    const result = reducer(
+      withTask,
+      updateCustomTask(id, 'Renamed', 'green', 1001, 'weekly'),
+    )
+    expect(result).toBe(withTask)
+  })
+
+  it('updates only the targeted task when multiple custom tasks exist', () => {
+    const withTasks = [
+      addCustomTask('Task A', 'blue', 1, 'daily'),
+      addCustomTask('Task B', 'green', 2, 'weekly'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+
+    const result = reducer(
+      withTasks,
+      updateCustomTask(taskA.id, 'Renamed', 'gold', 5, 'milestone'),
+    )
+
+    expect(result.customTasks).toEqual([
+      {
+        id: taskA.id,
+        name: 'Renamed',
+        color: 'gold',
+        maxProgress: 5,
+        category: 'milestone',
+      },
+      taskB,
+    ])
+  })
+})
+
+describe('reducer / removeCustomTask', () => {
+  it('removes the custom task and cleans up its progress entries across characters', () => {
+    const withTask = reducer(
+      emptyStore(),
+      addCustomTask('Original', 'blue', 1, 'daily'),
+    )
+    const id = withTask.customTasks?.[0].id as string
+    const withProgress: typeof withTask = {
+      ...withTask,
+      progress: {
+        'char-1': { [id]: 1, [DAILY_TASK_ID]: 2 },
+        'char-2': { [id]: 3 },
+      },
+    }
+    const result = reducer(withProgress, removeCustomTask(id))
+
+    expect(result.customTasks).toEqual([])
+    expect(result.progress).toEqual({
+      'char-1': { [DAILY_TASK_ID]: 2 },
+      'char-2': {},
+    })
+  })
+
+  it('is a no-op when the custom task does not exist', () => {
+    const store = emptyStore()
+    expect(reducer(store, removeCustomTask('missing'))).toBe(store)
+  })
+
+  it('does not remove or affect other custom tasks when multiple exist', () => {
+    const withTasks = [
+      addCustomTask('Task A', 'blue', 1, 'daily'),
+      addCustomTask('Task B', 'green', 2, 'weekly'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+    const withProgress: typeof withTasks = {
+      ...withTasks,
+      progress: { 'char-1': { [taskA.id]: 1, [taskB.id]: 2 } },
+    }
+
+    const result = reducer(withProgress, removeCustomTask(taskA.id))
+
+    expect(result.customTasks).toEqual([taskB])
+    expect(result.progress).toEqual({ 'char-1': { [taskB.id]: 2 } })
+  })
+})
+
 describe('reducer / evaluateResetState', () => {
   it('initializes resetState on first evaluation without deleting anything', () => {
     const store = storeWithCharacter({
@@ -470,6 +658,75 @@ describe('reducer / evaluateResetState', () => {
 
     expect(result.progress[alice.id]).toEqual({})
     expect(result.progress[bob.id]).toBe(bobProgressBefore)
+  })
+
+  it('resets a daily custom task progress when the stored daily period is in the past', () => {
+    const store = storeWithCharacter({
+      resetState: {
+        daily: '2026-02-02T20:00:00.000Z',
+        weekly: '2026-02-01T20:00:00.000Z',
+      },
+      progress: { 'char-1': { custom_daily_task: 2 } },
+      customTasks: [
+        {
+          id: 'custom_daily_task',
+          name: 'Custom Daily',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'daily',
+        },
+      ],
+    })
+    const now = new Date('2026-02-04T10:00:00.000Z')
+    const result = evaluateResetState(store, now)
+
+    expect(result.progress['char-1']).toEqual({})
+  })
+
+  it('resets a weekly custom task progress when the stored weekly period is in the past', () => {
+    const store = storeWithCharacter({
+      resetState: {
+        daily: '2026-02-03T20:00:00.000Z',
+        weekly: '2026-01-25T20:00:00.000Z',
+      },
+      progress: { 'char-1': { custom_weekly_task: 2 } },
+      customTasks: [
+        {
+          id: 'custom_weekly_task',
+          name: 'Custom Weekly',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'weekly',
+        },
+      ],
+    })
+    const now = new Date('2026-02-04T10:00:00.000Z')
+    const result = evaluateResetState(store, now)
+
+    expect(result.progress['char-1']).toEqual({})
+  })
+
+  it('never resets a milestone custom task progress', () => {
+    const store = storeWithCharacter({
+      resetState: {
+        daily: '2026-02-02T20:00:00.000Z',
+        weekly: '2026-01-25T20:00:00.000Z',
+      },
+      progress: { 'char-1': { custom_milestone_task: 2 } },
+      customTasks: [
+        {
+          id: 'custom_milestone_task',
+          name: 'Custom Milestone',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'milestone',
+        },
+      ],
+    })
+    const now = new Date('2026-02-04T10:00:00.000Z')
+    const result = evaluateResetState(store, now)
+
+    expect(result.progress['char-1']).toEqual({ custom_milestone_task: 2 })
   })
 })
 

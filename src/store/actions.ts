@@ -1,3 +1,4 @@
+import type { TaskColorToken } from '../data/taskColors'
 import type { TaskCategory } from '../data/taskLookup'
 
 export type Action =
@@ -15,6 +16,22 @@ export type Action =
     }
   | { type: 'setTaskHidden'; taskId: string; hidden: boolean }
   | { type: 'setTaskDetailedCount'; taskId: string; detailed: boolean }
+  | {
+      type: 'addCustomTask'
+      name: string
+      color: TaskColorToken
+      maxProgress: number
+      category: TaskCategory
+    }
+  | {
+      type: 'updateCustomTask'
+      id: string
+      name: string
+      color: TaskColorToken
+      maxProgress: number
+      category: TaskCategory
+    }
+  | { type: 'removeCustomTask'; id: string }
 
 export const addCharacter = (name: string): Action => ({
   type: 'addCharacter',
@@ -77,4 +94,37 @@ export const setTaskDetailedCount = (
   type: 'setTaskDetailedCount',
   taskId,
   detailed,
+})
+
+export const addCustomTask = (
+  name: string,
+  color: TaskColorToken,
+  maxProgress: number,
+  category: TaskCategory,
+): Action => ({
+  type: 'addCustomTask',
+  name,
+  color,
+  maxProgress,
+  category,
+})
+
+export const updateCustomTask = (
+  id: string,
+  name: string,
+  color: TaskColorToken,
+  maxProgress: number,
+  category: TaskCategory,
+): Action => ({
+  type: 'updateCustomTask',
+  id,
+  name,
+  color,
+  maxProgress,
+  category,
+})
+
+export const removeCustomTask = (id: string): Action => ({
+  type: 'removeCustomTask',
+  id,
 })
