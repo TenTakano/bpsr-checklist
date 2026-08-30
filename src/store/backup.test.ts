@@ -188,6 +188,15 @@ describe('parseBackupFile / import size limits', () => {
       store: { schemaVersion: 1, taskDataVersion: 'test-commit', ...store },
     })
 
+  const buildCustomTasks = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      id: `custom_task_${index}`,
+      name: `Custom Task ${index}`,
+      color: 'blue',
+      maxProgress: 1,
+      category: 'daily',
+    }))
+
   it('rejects a store with more characters than MAX_IMPORT_CHARACTERS', () => {
     const raw = buildRaw({
       characters: buildCharacters(MAX_IMPORT_CHARACTERS + 1),
@@ -262,15 +271,6 @@ describe('parseBackupFile / import size limits', () => {
       message: TOO_MANY_ELEMENTS_MESSAGE,
     })
   })
-
-  const buildCustomTasks = (count: number) =>
-    Array.from({ length: count }, (_, index) => ({
-      id: `custom_task_${index}`,
-      name: `Custom Task ${index}`,
-      color: 'blue',
-      maxProgress: 1,
-      category: 'daily',
-    }))
 
   it('rejects customTasks exceeding MAX_IMPORT_CUSTOM_TASKS', () => {
     const raw = buildRaw({

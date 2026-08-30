@@ -51,6 +51,9 @@ describe('CustomTaskSchema', () => {
     ['__proto__', false],
     ['constructor', false],
     ['prototype', false],
+    ['daily_a', false],
+    ['weekly_a', false],
+    ['custom', false],
   ] as const)('id %s is valid: %s', (id, expected) => {
     const result = CustomTaskSchema.safeParse({ ...VALID_CUSTOM_TASK, id })
     expect(result.success).toBe(expected)

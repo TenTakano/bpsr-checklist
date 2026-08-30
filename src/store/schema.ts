@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { CustomTaskSchema } from '../data/customTaskSchema'
 import { ResetCycleSchema } from '../data/resetCycle'
 
 export const MAX_CHARACTER_NAME_LENGTH = 50
@@ -30,8 +29,6 @@ export type TaskOrder = z.infer<typeof TaskOrderSchema>
 export const HiddenTaskIdsSchema = z.array(z.string())
 
 export const DetailedCountTaskIdsSchema = z.array(z.string())
-
-export const CustomTasksSchema = z.array(CustomTaskSchema)
 
 export type { CustomTask } from '../data/customTaskSchema'
 
