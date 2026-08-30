@@ -33,9 +33,10 @@ type Dispatch = StoreContextValue['dispatch']
 type DragOverDirection = 'above' | 'below' | null
 
 // TaskVisibility only renders sections for TASK_SECTIONS (daily/weekly);
-// milestone has no #task-visibility-section-milestone target yet, so its
-// "表示タスク設定" trigger is withheld until TaskVisibility gains that
-// section in a later PR.
+// milestone has no #task-visibility-section-milestone target, so its
+// "表示タスク設定" trigger is withheld for it. Milestone visibility/detailed
+// count settings are out of scope for Issue #9 and are left for a separate
+// issue if ever needed.
 const TASK_VISIBILITY_SUPPORTED_CATEGORIES = new Set<TaskCategory>(
   TASK_SECTIONS.map((section) => section.cycle),
 )

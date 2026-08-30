@@ -554,6 +554,32 @@ describe('reducer / removeCustomTask', () => {
     expect(result.customTasks).toEqual([taskB])
     expect(result.progress).toEqual({ 'char-1': { [taskB.id]: 2 } })
   })
+
+  it('removes the task id from taskOrder, hiddenTaskIds, and detailedCountTaskIds', () => {
+    const withTasks = [
+      addCustomTask('Task A', 'blue', 1, 'daily'),
+      addCustomTask('Task B', 'green', 2, 'daily'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+    const withOrderAndFlags: typeof withTasks = {
+      ...withTasks,
+      taskOrder: {
+        daily: [...DAILY_TASK_IDS, taskA.id, taskB.id],
+        weekly: [WEEKLY_TASK_ID],
+      },
+      hiddenTaskIds: [taskA.id, DAILY_TASK_ID],
+      detailedCountTaskIds: [taskA.id, WEEKLY_TASK_ID],
+    }
+
+    const result = reducer(withOrderAndFlags, removeCustomTask(taskA.id))
+
+    expect(result.taskOrder).toEqual({
+      daily: [...DAILY_TASK_IDS, taskB.id],
+      weekly: [WEEKLY_TASK_ID],
+    })
+    expect(result.hiddenTaskIds).toEqual([DAILY_TASK_ID])
+    expect(result.detailedCountTaskIds).toEqual([WEEKLY_TASK_ID])
+  })
 })
 
 describe('reducer / evaluateResetState', () => {
