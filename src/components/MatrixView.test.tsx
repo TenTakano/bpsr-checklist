@@ -11,6 +11,7 @@ import userEvent from '@testing-library/user-event'
 import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import {
+  buildCustomTask,
   DEFAULT_CHARACTER,
   emptyStore,
   storeWithCharacter,
@@ -814,5 +815,102 @@ describe('MatrixView / readonly mode', () => {
       status: 'readonly',
     })
     expect(screen.getByRole('button', { name: '完了済み（1）' })).toBeEnabled()
+  })
+})
+
+describe('MatrixView / custom tasks', () => {
+  it('omits the milestone section entirely when there are no custom tasks', () => {
+    renderWithContext({ store: storeWithCharacter() })
+    expect(
+      screen.queryByRole('heading', { name: 'マイルストーン' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders a milestone section once a milestone custom task exists', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+      name: 'ギルド討伐',
+    })
+    renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    expect(
+      screen.getByRole('heading', { name: 'マイルストーン' }),
+    ).toBeInTheDocument()
+    expect(screen.getByTitle('ギルド討伐')).toBeInTheDocument()
+  })
+
+  it('does not render the 表示タスク設定 button for the milestone section, since TaskVisibility has no milestone target yet', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+      name: 'ギルド討伐',
+    })
+    renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    expect(
+      within(getSectionHeader('マイルストーン')).queryByRole('button', {
+        name: '表示タスク設定',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders a custom task among the daily rows using its name as the label', () => {
+    const customTask = buildCustomTask({
+      id: 'custom_d1',
+      category: 'daily',
+      name: 'カスタムデイリー',
+    })
+    renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    expect(
+      within(getSection('デイリー')).getAllByRole('rowheader'),
+    ).toHaveLength(DAILY_TASKS.length + 1)
+    expect(screen.getByTitle('カスタムデイリー')).toBeInTheDocument()
+  })
+
+  it('dispatches setProgress when a milestone custom task cell is toggled', async () => {
+    const customTask = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+      name: 'ギルド討伐',
+    })
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({ customTasks: [customTask] }),
+    })
+    const button = screen.getByRole('button', {
+      name: `${CHARACTER_NAME} ギルド討伐`,
+    })
+    await userEvent.click(button)
+    expect(dispatch).toHaveBeenCalledWith(
+      setProgress(CHARACTER_ID, 'custom_m1', 1),
+    )
+  })
+
+  it('dispatches moveTask when reordering custom tasks within the milestone section via drag and drop', () => {
+    const taskA = buildCustomTask({
+      id: 'custom_m1',
+      category: 'milestone',
+      name: 'ミッションA',
+    })
+    const taskB = buildCustomTask({
+      id: 'custom_m2',
+      category: 'milestone',
+      name: 'ミッションB',
+    })
+    const { dispatch } = renderWithContext({
+      store: storeWithCharacter({ customTasks: [taskA, taskB] }),
+    })
+    const source = getDragHandle('ミッションA')
+    const target = screen.getByTitle('ミッションB')
+    const dataTransfer = fakeDataTransfer()
+
+    fireEvent.dragStart(source, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
+
+    expect(dispatch).toHaveBeenCalledWith(moveTask('milestone', 'custom_m1', 1))
   })
 })

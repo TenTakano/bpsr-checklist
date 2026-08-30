@@ -8,12 +8,14 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { resolveTaskColor } from '../data/taskColors'
-import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
+import { splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
 import { resolveTaskOrder } from '../data/taskOrder'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
-import type { ProjectTask } from '../data/projectTaskSchema'
-import { TASK_SECTIONS } from '../data/taskSections'
+import { MATRIX_TASK_SECTIONS, TASK_SECTIONS } from '../data/taskSections'
+import {
+  getDisplayTasksByCategory,
+  type DisplayTask,
+} from '../domain/displayTasks'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { isTaskComplete, readProgressValue } from '../domain/taskProgress'
 import { moveTask, setProgress } from '../store/actions'
@@ -24,6 +26,14 @@ import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
 
 type Dispatch = StoreContextValue['dispatch']
 type DragOverDirection = 'above' | 'below' | null
+
+// TaskVisibility only renders sections for TASK_SECTIONS (daily/weekly);
+// milestone has no #task-visibility-section-milestone target yet, so its
+// "表示タスク設定" trigger is withheld until TaskVisibility gains that
+// section in a later PR.
+const TASK_VISIBILITY_SUPPORTED_CATEGORIES = new Set<TaskCategory>(
+  TASK_SECTIONS.map((section) => section.cycle),
+)
 
 function classNames(
   base: string,
@@ -40,6 +50,19 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
   const { store, status, dispatch } = useStore()
   const isReadOnly = status === 'readonly'
   const characters = store.characters
+  const customTasks = store.customTasks
+  const tasksByCategory = useMemo(
+    () =>
+      new Map(
+        MATRIX_TASK_SECTIONS.map(
+          ({ category }): [TaskCategory, DisplayTask[]] => [
+            category,
+            getDisplayTasksByCategory(category, customTasks),
+          ],
+        ),
+      ),
+    [customTasks],
+  )
 
   if (characters.length === 0) {
     return (
@@ -51,21 +74,24 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
 
   return (
     <section aria-label="進捗マトリクス" className="matrix-view">
-      {TASK_SECTIONS.map(({ title, cycle }) => (
+      {MATRIX_TASK_SECTIONS.map(({ title, category }) => (
         <MatrixSection
-          key={cycle}
+          key={category}
           title={title}
-          section={cycle}
-          tasks={PROJECT_TASKS_BY_RESET_CYCLE[cycle]}
-          taskOrder={store.taskOrder?.[cycle]}
+          section={category}
+          tasks={tasksByCategory.get(category) ?? []}
+          taskOrder={store.taskOrder?.[category]}
           hiddenTaskIds={store.hiddenTaskIds}
           detailedCountTaskIds={store.detailedCountTaskIds}
           characters={characters}
           progress={store.progress}
           isReadOnly={isReadOnly}
           dispatch={dispatch}
+          canOpenTaskVisibility={TASK_VISIBILITY_SUPPORTED_CATEGORIES.has(
+            category,
+          )}
           onOpenTaskVisibility={(trigger) =>
-            onOpenTaskVisibility(cycle, trigger)
+            onOpenTaskVisibility(category, trigger)
           }
         />
       ))}
@@ -76,7 +102,7 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
 interface MatrixSectionProps {
   title: string
   section: TaskCategory
-  tasks: ProjectTask[]
+  tasks: DisplayTask[]
   taskOrder: string[] | undefined
   hiddenTaskIds: string[] | undefined
   detailedCountTaskIds: string[] | undefined
@@ -84,6 +110,7 @@ interface MatrixSectionProps {
   progress: Store['progress']
   isReadOnly: boolean
   dispatch: Dispatch
+  canOpenTaskVisibility: boolean
   onOpenTaskVisibility: (trigger: HTMLElement) => void
 }
 
@@ -98,6 +125,7 @@ function MatrixSection({
   progress,
   isReadOnly,
   dispatch,
+  canOpenTaskVisibility,
   onOpenTaskVisibility,
 }: MatrixSectionProps) {
   const orderedTasks = useMemo(
@@ -141,7 +169,7 @@ function MatrixSection({
   // completed it; this deliberately ignores any notion of an "active"
   // character.
   const isRowComplete = useCallback(
-    (task: ProjectTask) =>
+    (task: DisplayTask) =>
       characters.every((character) =>
         isTaskComplete(
           readProgressValue(progress, character.id, task.id),
@@ -190,7 +218,7 @@ function MatrixSection({
   }, [normalTaskEntries])
 
   const handleReorderKeyDown =
-    (task: ProjectTask, label: string, position: number) =>
+    (task: DisplayTask, label: string, position: number) =>
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
         return
@@ -253,14 +281,14 @@ function MatrixSection({
   }
 
   const renderTaskRow = (
-    task: ProjectTask,
+    task: DisplayTask,
     index: number,
     isCompletedRow: boolean,
     // undefined for completed rows: they render no reorder handle, so
     // there is no position for handleReorderKeyDown to move relative to.
     position: number | undefined,
   ) => {
-    const label = getTaskLabel(task)
+    const label = task.label
     const { primary, note } = splitTaskLabel(label)
     const isDragging = !isCompletedRow && draggedTaskId === task.id
     const isDragOver = !isCompletedRow && dragOverTaskId === task.id
@@ -334,6 +362,15 @@ function MatrixSection({
     )
   }
 
+  // A category with zero tasks (static + custom combined) has nothing to
+  // ever show (e.g. milestone before any custom task exists), so the whole
+  // section is omitted rather than rendering a permanently non-functional
+  // empty state. This is distinct from hasVisibleTask below, which covers
+  // "has tasks, but all are hidden via TaskVisibility".
+  if (tasks.length === 0) {
+    return null
+  }
+
   if (!hasVisibleTask) {
     return (
       <div className="matrix-section">
@@ -341,6 +378,7 @@ function MatrixSection({
           title={title}
           completed={summary.completed}
           total={summary.total}
+          canOpenTaskVisibility={canOpenTaskVisibility}
           onOpenTaskVisibility={onOpenTaskVisibility}
         />
         <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
@@ -354,6 +392,7 @@ function MatrixSection({
         title={title}
         completed={summary.completed}
         total={summary.total}
+        canOpenTaskVisibility={canOpenTaskVisibility}
         onOpenTaskVisibility={onOpenTaskVisibility}
       />
       <p className="visually-hidden" role="status" aria-live="polite">
@@ -426,6 +465,7 @@ interface MatrixSectionHeaderProps {
   title: string
   completed: number
   total: number
+  canOpenTaskVisibility: boolean
   onOpenTaskVisibility: (trigger: HTMLElement) => void
 }
 
@@ -433,6 +473,7 @@ function MatrixSectionHeader({
   title,
   completed,
   total,
+  canOpenTaskVisibility,
   onOpenTaskVisibility,
 }: MatrixSectionHeaderProps) {
   return (
@@ -442,20 +483,22 @@ function MatrixSectionHeader({
         {completed} / {total} 完了
       </span>
       <span className="matrix-section-spacer" />
-      <button
-        type="button"
-        className="matrix-section-action"
-        onClick={(event) => onOpenTaskVisibility(event.currentTarget)}
-      >
-        表示タスク設定
-      </button>
+      {canOpenTaskVisibility && (
+        <button
+          type="button"
+          className="matrix-section-action"
+          onClick={(event) => onOpenTaskVisibility(event.currentTarget)}
+        >
+          表示タスク設定
+        </button>
+      )}
     </div>
   )
 }
 
 interface MatrixCellProps {
   character: Character
-  task: ProjectTask
+  task: DisplayTask
   value: number
   isDetailedCount: boolean
   isReadOnly: boolean
@@ -480,7 +523,7 @@ function MatrixCell({
             'matrix-toggle',
             isDone && 'matrix-toggle--done',
           )}
-          aria-label={`${character.name} ${getTaskLabel(task)}`}
+          aria-label={`${character.name} ${task.label}`}
           aria-pressed={isDone}
           disabled={isReadOnly}
           onClick={() =>
@@ -509,7 +552,7 @@ function MatrixCell({
               ? 'matrix-counter-increment--over'
               : isComplete && 'matrix-counter-increment--complete',
           )}
-          aria-label={`${character.name} ${getTaskLabel(task)} を増やす`}
+          aria-label={`${character.name} ${task.label} を増やす`}
           disabled={!canIncrement}
           onClick={() =>
             dispatch(setProgress(character.id, task.id, value + 1))
@@ -520,7 +563,7 @@ function MatrixCell({
         <button
           type="button"
           className="matrix-counter-decrement"
-          aria-label={`${character.name} ${getTaskLabel(task)} を減らす`}
+          aria-label={`${character.name} ${task.label} を減らす`}
           disabled={!canDecrement}
           onClick={() =>
             dispatch(setProgress(character.id, task.id, value - 1))

@@ -1,7 +1,10 @@
 import { useMemo } from 'react'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
-import type { ProjectTask } from '../data/projectTaskSchema'
-import { TASK_SECTIONS } from '../data/taskSections'
+import type { TaskCategory } from '../data/taskLookup'
+import { MATRIX_TASK_SECTIONS } from '../data/taskSections'
+import {
+  getDisplayTasksByCategory,
+  type DisplayTask,
+} from '../domain/displayTasks'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { useStore } from '../store/context'
 import type { Character } from '../store/schema'
@@ -9,15 +12,28 @@ import type { Store } from '../store/types'
 
 export function SummaryPanel() {
   const { store } = useStore()
+  const customTasks = store.customTasks
+  const tasksByCategory = useMemo(
+    () =>
+      new Map(
+        MATRIX_TASK_SECTIONS.map(
+          ({ category }): [TaskCategory, DisplayTask[]] => [
+            category,
+            getDisplayTasksByCategory(category, customTasks),
+          ],
+        ),
+      ),
+    [customTasks],
+  )
 
   return (
     <section aria-label="全体進捗サマリー" className="summary-panel">
       <h2 className="summary-panel-heading">全体進捗</h2>
-      {TASK_SECTIONS.map(({ title, cycle }) => (
+      {MATRIX_TASK_SECTIONS.map(({ title, category }) => (
         <SummaryRow
-          key={cycle}
+          key={category}
           title={title}
-          tasks={PROJECT_TASKS_BY_RESET_CYCLE[cycle]}
+          tasks={tasksByCategory.get(category) ?? []}
           characters={store.characters}
           progress={store.progress}
           hiddenTaskIds={store.hiddenTaskIds}
@@ -29,7 +45,7 @@ export function SummaryPanel() {
 
 interface SummaryRowProps {
   title: string
-  tasks: ProjectTask[]
+  tasks: DisplayTask[]
   characters: Character[]
   progress: Store['progress']
   hiddenTaskIds: string[] | undefined
@@ -50,6 +66,14 @@ function SummaryRow({
     () => new Map(characters.map((character) => [character.id, character])),
     [characters],
   )
+
+  // A category with zero tasks (static + custom combined) has nothing to
+  // ever show (e.g. milestone before any custom task exists), so the whole
+  // row is omitted rather than rendering a permanently non-functional 0/0
+  // bar.
+  if (tasks.length === 0) {
+    return null
+  }
 
   return (
     <div className="summary-row">

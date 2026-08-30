@@ -23,9 +23,11 @@ export function SettingsModal({
       const sectionHeading = dialogRef.current?.querySelector<HTMLElement>(
         `#task-visibility-section-${initialFocusSection}`,
       )
-      sectionHeading?.scrollIntoView()
-      sectionHeading?.focus()
-      return
+      if (sectionHeading !== null && sectionHeading !== undefined) {
+        sectionHeading.scrollIntoView()
+        sectionHeading.focus()
+        return
+      }
     }
 
     const nameInput = dialogRef.current?.querySelector<HTMLInputElement>(
