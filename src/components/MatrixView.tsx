@@ -376,10 +376,7 @@ function MatrixSection({
               className="matrix-task-edit-button"
               aria-label={`${label} を編集`}
               disabled={isReadOnly}
-              onClick={(event) => {
-                event.stopPropagation()
-                onEditCustomTask(task, event.currentTarget)
-              }}
+              onClick={(event) => onEditCustomTask(task, event.currentTarget)}
             >
               編集
             </button>
@@ -402,39 +399,11 @@ function MatrixSection({
 
   const colSpan = characters.length + 2
 
-  // A category with zero tasks (static + custom combined) has no rows to
-  // show yet (e.g. milestone before any custom task exists), but the
-  // section itself still renders so the add-row below stays reachable as
-  // the only entry point for creating the first task in that category.
-  if (tasks.length === 0) {
-    return (
-      <div className="matrix-section">
-        <MatrixSectionHeader
-          title={title}
-          completed={summary.completed}
-          total={summary.total}
-          canOpenTaskVisibility={canOpenTaskVisibility}
-          onOpenTaskVisibility={onOpenTaskVisibility}
-        />
-        <div className="matrix-scroll">
-          <table className="matrix-table">
-            <MatrixTableHead characters={characters} />
-            <tbody>
-              <AddCustomTaskRow
-                colSpan={colSpan}
-                isReadOnly={isReadOnly}
-                onAddCustomTask={onAddCustomTask}
-              />
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-  }
-
-  // "has tasks, but every one of them is hidden via TaskVisibility" is
-  // distinct from the zero-task case above: the add-row still needs a
-  // table to sit in, but the existing empty-state message is kept above it.
+  // No visible tasks: either the category has zero tasks combined (e.g.
+  // milestone before any custom task exists) or every task is hidden via
+  // TaskVisibility. Either way the section still renders so the add-row
+  // stays reachable as an entry point for creating/restoring a task; the
+  // empty-state message is only shown for the "has tasks, all hidden" case.
   if (!hasVisibleTask) {
     return (
       <div className="matrix-section">
@@ -445,7 +414,9 @@ function MatrixSection({
           canOpenTaskVisibility={canOpenTaskVisibility}
           onOpenTaskVisibility={onOpenTaskVisibility}
         />
-        <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
+        {tasks.length > 0 && (
+          <p className="matrix-empty">{NO_VISIBLE_TASKS_MESSAGE}</p>
+        )}
         <div className="matrix-scroll">
           <table className="matrix-table">
             <MatrixTableHead characters={characters} />

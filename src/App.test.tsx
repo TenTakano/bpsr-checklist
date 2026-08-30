@@ -194,6 +194,72 @@ describe('App / タスク表示設定とマトリクスの連動', () => {
   })
 })
 
+describe('App / カスタムタスクモーダル', () => {
+  it('タスク追加ボタンから開くと名前欄にフォーカスする', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const addButton = screen.getAllByRole('button', {
+      name: '＋ タスクを追加',
+    })[0]
+    await user.click(addButton)
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByLabelText('名前')).toHaveFocus()
+  })
+
+  it('タスク追加ボタンから開いて閉じるとフォーカスが起点ボタンへ戻る', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const addButton = screen.getAllByRole('button', {
+      name: '＋ タスクを追加',
+    })[0]
+    await user.click(addButton)
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(addButton).toHaveFocus()
+  })
+
+  it('タスク追加はクリックしたセクションをカテゴリの既定値として開く', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const milestoneAddButton = screen.getAllByRole('button', {
+      name: '＋ タスクを追加',
+    })[2]
+    await user.click(milestoneAddButton)
+
+    expect(screen.getByLabelText('カテゴリ')).toHaveValue('milestone')
+  })
+
+  it('編集トリガーから開いて閉じるとフォーカスが起点ボタンへ戻る', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const addButton = screen.getAllByRole('button', {
+      name: '＋ タスクを追加',
+    })[0]
+    await user.click(addButton)
+    await user.type(screen.getByLabelText('名前'), 'カスタムタスク')
+    await user.click(screen.getByRole('button', { name: '保存' }))
+
+    const editButton = screen.getByRole('button', {
+      name: 'カスタムタスク を編集',
+    })
+    await user.click(editButton)
+    expect(
+      screen.getByRole('heading', { name: 'タスクを編集' }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '閉じる' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(editButton).toHaveFocus()
+  })
+})
+
 describe('App / ステータスバナー', () => {
   it('モーダルを開かなくてもバナーが表示される', () => {
     localStorage.setItem(STORAGE_KEY, '{not valid json')

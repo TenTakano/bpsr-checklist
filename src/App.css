@@ -623,6 +623,7 @@
   border: none;
   background: transparent;
   color: var(--text-muted);
+  font: inherit;
   font-size: var(--font-size-xs);
   text-decoration: underline;
   cursor: pointer;

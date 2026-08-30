@@ -961,10 +961,11 @@ describe('MatrixView / custom tasks', () => {
       store: storeWithCharacter(),
     })
     const dailySection = getSection('デイリー')
-    await userEvent.click(
-      within(dailySection).getByRole('button', { name: '＋ タスクを追加' }),
-    )
-    expect(onAddCustomTask).toHaveBeenCalledWith('daily', expect.any(Object))
+    const button = within(dailySection).getByRole('button', {
+      name: '＋ タスクを追加',
+    })
+    await userEvent.click(button)
+    expect(onAddCustomTask).toHaveBeenCalledWith('daily', button)
   })
 
   it('disables the add-row button in readonly mode', () => {
@@ -1006,13 +1007,14 @@ describe('MatrixView / custom tasks', () => {
     const { onEditCustomTask } = renderWithContext({
       store: storeWithCharacter({ customTasks: [customTask] }),
     })
-    await userEvent.click(
-      screen.getByRole('button', { name: 'カスタムデイリー を編集' }),
-    )
+    const button = screen.getByRole('button', {
+      name: 'カスタムデイリー を編集',
+    })
+    await userEvent.click(button)
     expect(onEditCustomTask).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'custom_d1', label: 'カスタムデイリー' }),
       'daily',
-      expect.any(Object),
+      button,
     )
   })
 
