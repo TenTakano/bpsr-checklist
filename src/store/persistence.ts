@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import { CustomTaskSchema } from '../data/customTaskSchema'
 import upstreamTasksDocument from '../data/upstreamTasks.json'
 import {
   CharacterSchema,
@@ -9,6 +10,7 @@ import {
   StoreSchema,
   TaskOrderSchema,
   type Character,
+  type CustomTask,
 } from './schema'
 import type { Store } from './types'
 
@@ -120,6 +122,7 @@ const extraTopLevelFields = (
         key !== 'taskOrder' &&
         key !== 'hiddenTaskIds' &&
         key !== 'detailedCountTaskIds' &&
+        key !== 'customTasks' &&
         !UNSAFE_OBJECT_KEYS.has(key),
     ),
   )
@@ -158,6 +161,28 @@ const rescueDetailedCountTaskIds = (
   return result.success ? result.data : undefined
 }
 
+// customTasks is a user-generated array (like characters), so a single
+// invalid element degrades to skipping just that element rather than the
+// all-or-nothing degradation used for resetState/taskOrder/hiddenTaskIds/
+// detailedCountTaskIds. This prevents one corrupt entry from wiping every
+// custom task on the next mount-time autosave.
+const rescueCustomTasks = (raw: unknown): Store['customTasks'] => {
+  if (!Array.isArray(raw)) {
+    return undefined
+  }
+  const seenIds = new Set<string>()
+  const customTasks: CustomTask[] = []
+  for (const candidate of raw) {
+    const result = CustomTaskSchema.safeParse(candidate)
+    if (!result.success || seenIds.has(result.data.id)) {
+      continue
+    }
+    seenIds.add(result.data.id)
+    customTasks.push(result.data)
+  }
+  return customTasks
+}
+
 export const normalizeStoreData = (
   data: z.infer<typeof StoreSchema>,
 ): Store => {
@@ -169,6 +194,7 @@ export const normalizeStoreData = (
   const detailedCountTaskIds = rescueDetailedCountTaskIds(
     data.detailedCountTaskIds,
   )
+  const customTasks = rescueCustomTasks(data.customTasks)
 
   return {
     ...extraTopLevelFields(data),
@@ -180,6 +206,7 @@ export const normalizeStoreData = (
     taskOrder,
     hiddenTaskIds,
     detailedCountTaskIds,
+    customTasks,
   }
 }
 

@@ -620,6 +620,151 @@ describe('loadStore', () => {
       expect(result.store.detailedCountTaskIds).toBeUndefined()
     }
   })
+
+  it('round-trips a valid customTasks through save and load', () => {
+    const store = storeWithCharacter({
+      progress: {},
+      customTasks: [
+        {
+          id: 'custom_abc123',
+          name: 'カスタムタスク',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'daily',
+        },
+      ],
+    })
+    const saveResult = saveStore(store)
+    expect(saveResult.status).toBe('ok')
+
+    const loadResult = loadStore()
+    expect(loadResult.status).toBe('ok')
+    if (loadResult.status === 'ok') {
+      expect(loadResult.store.customTasks).toEqual(store.customTasks)
+    }
+  })
+
+  it('omits customTasks entirely when it was never stored', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.customTasks).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent customTasks (without wiping the rest of the store) when it is not an array', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      customTasks: { not: 'an array' },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.customTasks).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('drops individual invalid custom task elements while keeping valid ones', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      customTasks: [
+        {
+          id: 'custom_valid',
+          name: 'Valid',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'daily',
+        },
+        {
+          id: 'custom_invalid',
+          name: 'Invalid',
+          color: 'not_a_real_token',
+          maxProgress: 3,
+          category: 'daily',
+        },
+        'not-an-object',
+      ],
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.customTasks).toEqual([
+        {
+          id: 'custom_valid',
+          name: 'Valid',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'daily',
+        },
+      ])
+    }
+  })
+
+  it('drops custom task elements with a duplicate id, keeping only the first occurrence', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      customTasks: [
+        {
+          id: 'custom_dup',
+          name: 'First',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'daily',
+        },
+        {
+          id: 'custom_dup',
+          name: 'Second',
+          color: 'green',
+          maxProgress: 5,
+          category: 'weekly',
+        },
+      ],
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.customTasks).toEqual([
+        {
+          id: 'custom_dup',
+          name: 'First',
+          color: 'blue',
+          maxProgress: 3,
+          category: 'daily',
+        },
+      ])
+    }
+  })
 })
 
 describe('backupCorruptedStore', () => {

@@ -1,7 +1,13 @@
+import { z } from 'zod'
 import { PROJECT_TASKS_BY_RESET_CYCLE } from './projectTasksResolver'
-import { RESET_CYCLES, type ResetCycle } from './resetCycle'
+import { RESET_CYCLES } from './resetCycle'
 
-export type TaskCategory = ResetCycle | 'milestone'
+export const TaskCategorySchema = z.enum([
+  ...RESET_CYCLES,
+  'milestone',
+] as const)
+
+export type TaskCategory = z.infer<typeof TaskCategorySchema>
 
 type TaskCategoryResolver = (taskId: string) => TaskCategory | null
 

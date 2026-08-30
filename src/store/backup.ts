@@ -53,6 +53,7 @@ export const MAX_IMPORT_CHARACTERS = 200
 export const MAX_IMPORT_TASKS_PER_CHARACTER = 500
 export const MAX_IMPORT_TASK_ORDER_ENTRIES = 500
 export const MAX_IMPORT_HIDDEN_TASK_IDS = 500
+export const MAX_IMPORT_CUSTOM_TASKS = 200
 
 const exceedsImportLimits = (storeData: Store): boolean => {
   if (storeData.characters.length > MAX_IMPORT_CHARACTERS) {
@@ -77,6 +78,9 @@ const exceedsImportLimits = (storeData: Store): boolean => {
     return true
   }
   if ((storeData.hiddenTaskIds?.length ?? 0) > MAX_IMPORT_HIDDEN_TASK_IDS) {
+    return true
+  }
+  if ((storeData.customTasks?.length ?? 0) > MAX_IMPORT_CUSTOM_TASKS) {
     return true
   }
   return false
