@@ -9,6 +9,11 @@ export const TaskCategorySchema = z.enum([
 
 export type TaskCategory = z.infer<typeof TaskCategorySchema>
 
+export const TASK_CATEGORIES: readonly TaskCategory[] = [
+  ...RESET_CYCLES,
+  'milestone',
+]
+
 type TaskCategoryResolver = (taskId: string) => TaskCategory | null
 
 const buildTaskCategoryMap = (): Map<string, TaskCategory> => {

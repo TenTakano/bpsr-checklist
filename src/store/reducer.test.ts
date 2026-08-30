@@ -236,10 +236,52 @@ describe('reducer / moveTask', () => {
     expect(result.taskOrder?.daily).not.toContain('ghost_task')
   })
 
-  it('is a no-op for the milestone section', () => {
+  it('is a no-op for the milestone section when it has no custom tasks', () => {
     const store = emptyStore()
     const result = reducer(store, moveTask('milestone', 'any-task', 0))
     expect(result).toBe(store)
+  })
+
+  it('reorders custom tasks within the milestone section', () => {
+    const withTasks = [
+      addCustomTask('Milestone A', 'blue', 1, 'milestone'),
+      addCustomTask('Milestone B', 'green', 1, 'milestone'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+
+    const result = reducer(withTasks, moveTask('milestone', taskA.id, 1))
+
+    expect(result.taskOrder?.milestone).toEqual([taskB.id, taskA.id])
+  })
+
+  it('moves a custom task among static tasks within the daily section', () => {
+    const withTask = reducer(
+      emptyStore(),
+      addCustomTask('Custom Daily', 'blue', 1, 'daily'),
+    )
+    const customTaskId = withTask.customTasks?.[0].id as string
+
+    const result = reducer(withTask, moveTask('daily', customTaskId, 0))
+
+    expect(result.taskOrder?.daily?.[0]).toBe(customTaskId)
+  })
+
+  it('moves a custom task within the weekly section', () => {
+    const withTasks = [
+      addCustomTask('Custom Weekly A', 'blue', 1, 'weekly'),
+      addCustomTask('Custom Weekly B', 'green', 1, 'weekly'),
+    ].reduce((store, action) => reducer(store, action), emptyStore())
+    const [taskA, taskB] = withTasks.customTasks ?? []
+    const currentOrder = withTasks.taskOrder?.weekly ?? [
+      ...WEEKLY_TASKS.map((task) => task.id),
+      taskA.id,
+      taskB.id,
+    ]
+    const targetIndex = currentOrder.indexOf(taskA.id)
+
+    const result = reducer(withTasks, moveTask('weekly', taskB.id, targetIndex))
+
+    expect(result.taskOrder?.weekly?.indexOf(taskB.id)).toBe(targetIndex)
   })
 })
 

@@ -376,6 +376,46 @@ describe('loadStore', () => {
     }
   })
 
+  it('treats a legacy taskOrder without a milestone key as valid (back-compat regression)', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      taskOrder: { daily: ['daily_b', 'daily_a'], weekly: ['weekly_a'] },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.taskOrder).toEqual({
+        daily: ['daily_b', 'daily_a'],
+        weekly: ['weekly_a'],
+      })
+    }
+  })
+
+  it('round-trips a taskOrder that includes a milestone key', () => {
+    const store = storeWithCharacter({
+      progress: {},
+      taskOrder: {
+        daily: ['daily_a'],
+        weekly: ['weekly_a'],
+        milestone: ['custom_m1'],
+      },
+    })
+    const saveResult = saveStore(store)
+    expect(saveResult.status).toBe('ok')
+
+    const loadResult = loadStore()
+    expect(loadResult.status).toBe('ok')
+    if (loadResult.status === 'ok') {
+      expect(loadResult.store.taskOrder).toEqual(store.taskOrder)
+    }
+  })
+
   it('omits taskOrder entirely when it was never stored', () => {
     const raw = JSON.stringify({
       schemaVersion: 1,

@@ -1,3 +1,4 @@
+import { TASK_CATEGORIES } from '../data/taskLookup'
 import {
   STORAGE_KEY,
   backupPreImportStore,
@@ -72,8 +73,11 @@ const exceedsImportLimits = (storeData: Store): boolean => {
     return true
   }
   if (
-    (storeData.taskOrder?.daily.length ?? 0) > MAX_IMPORT_TASK_ORDER_ENTRIES ||
-    (storeData.taskOrder?.weekly.length ?? 0) > MAX_IMPORT_TASK_ORDER_ENTRIES
+    TASK_CATEGORIES.some(
+      (category) =>
+        (storeData.taskOrder?.[category]?.length ?? 0) >
+        MAX_IMPORT_TASK_ORDER_ENTRIES,
+    )
   ) {
     return true
   }
