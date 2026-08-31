@@ -3,26 +3,20 @@ import {
   createProjectTaskDefinitionsSchema,
   type ProjectTaskDefinition,
 } from './projectTaskSchema'
-import type { ResetCycle } from './resetCycle'
+import type { TaskCategory } from './taskLookup'
 
-const RESET_CYCLE_BY_UPSTREAM_ID: Record<string, ResetCycle> = {
+const CATEGORY_BY_UPSTREAM_ID: Record<string, TaskCategory> = {
   daily_a: 'daily',
   daily_b: 'daily',
   weekly_a: 'weekly',
   weekly_b: 'weekly',
 }
 
-const resolveResetCycle = (upstreamId: string): ResetCycle | null =>
-  RESET_CYCLE_BY_UPSTREAM_ID[upstreamId] ?? null
+const resolveCategory = (upstreamId: string): TaskCategory | null =>
+  CATEGORY_BY_UPSTREAM_ID[upstreamId] ?? null
 
-const parse = (
-  definitions: ProjectTaskDefinition[],
-  resetCycleOverrideIds: ReadonlySet<string> = new Set(),
-) =>
-  createProjectTaskDefinitionsSchema(
-    resolveResetCycle,
-    resetCycleOverrideIds,
-  ).safeParse(definitions)
+const parse = (definitions: ProjectTaskDefinition[]) =>
+  createProjectTaskDefinitionsSchema(resolveCategory).safeParse(definitions)
 
 const buildDailyA = (
   overrides: Partial<ProjectTaskDefinition> = {},
@@ -33,7 +27,7 @@ const buildDailyA = (
   color: 'blue',
   maxProgress: 1,
   optional: false,
-  resetCycle: 'daily',
+  category: 'daily',
   ...overrides,
 })
 
@@ -46,7 +40,7 @@ const buildProjectOnly = (
   color: 'purple',
   maxProgress: 1,
   optional: false,
-  resetCycle: 'daily',
+  category: 'daily',
   ...overrides,
 })
 
@@ -59,7 +53,7 @@ const buildWeeklyA = (
   color: 'gold',
   maxProgress: 1,
   optional: false,
-  resetCycle: 'weekly',
+  category: 'weekly',
   ...overrides,
 })
 
@@ -69,7 +63,7 @@ describe('createProjectTaskDefinitionsSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('accepts a merge of multiple upstream ids within the same resetCycle', () => {
+  it('accepts a merge of multiple upstream ids within the same category', () => {
     const result = parse([
       {
         id: 'daily_merged',
@@ -78,7 +72,7 @@ describe('createProjectTaskDefinitionsSchema', () => {
         color: 'blue',
         maxProgress: 5,
         optional: false,
-        resetCycle: 'daily',
+        category: 'daily',
       },
     ])
     expect(result.success).toBe(true)
@@ -97,19 +91,19 @@ describe('createProjectTaskDefinitionsSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('does not apply the resetCycle match check to a project-only task (no upstreamIds to resolve from)', () => {
-    const result = parse([buildProjectOnly({ resetCycle: 'weekly' })])
+  it('does not apply the category match check to a project-only task (no upstreamIds to resolve from)', () => {
+    const result = parse([buildProjectOnly({ category: 'weekly' })])
     expect(result.success).toBe(true)
   })
 
-  it('excludes an upstreamId unknown to resolveResetCycle from the resetCycle match check, so it does not cause a false-positive mismatch', () => {
+  it('excludes an upstreamId unknown to resolveUpstreamCategory from the category match check, so it does not cause a false-positive mismatch', () => {
     const result = parse([
       buildDailyA({ upstreamIds: ['daily_a', 'daily_does_not_exist'] }),
     ])
     expect(result.success).toBe(true)
   })
 
-  it.each(['label', 'color', 'maxProgress', 'optional', 'resetCycle'] as const)(
+  it.each(['label', 'color', 'maxProgress', 'optional', 'category'] as const)(
     'rejects a definition missing the required field %s (zod default required-field error)',
     (missingField) => {
       const fullDefinition = buildDailyA()
@@ -127,31 +121,6 @@ describe('createProjectTaskDefinitionsSchema', () => {
     },
   )
 
-  it('does not report a resetCycle mismatch for an id listed in resetCycleOverrideIds', () => {
-    const result = parse(
-      [buildDailyA({ resetCycle: 'weekly' })],
-      new Set(['daily_a']),
-    )
-    expect(result.success).toBe(true)
-  })
-
-  it('still reports a resetCycle mismatch for an id not listed in resetCycleOverrideIds, even when other ids are overridden', () => {
-    const result = parse(
-      [buildDailyA({ resetCycle: 'weekly' })],
-      new Set(['some_other_id']),
-    )
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(
-        result.error.issues.some((issue) =>
-          /resetCycle .*が upstreamIds から解決されるリセット周期と一致しません/.test(
-            issue.message,
-          ),
-        ),
-      ).toBe(true)
-    }
-  })
-
   it.each([
     [
       'duplicate project task ids',
@@ -168,7 +137,7 @@ describe('createProjectTaskDefinitionsSchema', () => {
           color: 'blue',
           maxProgress: 1,
           optional: false,
-          resetCycle: 'daily',
+          category: 'daily',
         },
       ],
       /daily\/weekly を跨いでいます/,
@@ -189,14 +158,14 @@ describe('createProjectTaskDefinitionsSchema', () => {
       /プロトタイプ汚染/,
     ],
     [
-      'a non-empty upstreamIds entry whose declared resetCycle (weekly) does not match the resolved cycle (daily)',
-      [buildDailyA({ resetCycle: 'weekly' })],
-      /resetCycle .*が upstreamIds から解決されるリセット周期と一致しません/,
+      'a non-empty upstreamIds entry whose declared category (weekly) does not match the resolved category (daily)',
+      [buildDailyA({ category: 'weekly' })],
+      /category .*が upstreamIds から解決されるカテゴリと一致しません/,
     ],
     [
-      'a non-empty upstreamIds entry whose declared resetCycle (daily) does not match the resolved cycle (weekly)',
-      [buildWeeklyA({ resetCycle: 'daily' })],
-      /resetCycle .*が upstreamIds から解決されるリセット周期と一致しません/,
+      'a non-empty upstreamIds entry whose declared category (daily) does not match the resolved category (weekly)',
+      [buildWeeklyA({ category: 'daily' })],
+      /category .*が upstreamIds から解決されるカテゴリと一致しません/,
     ],
   ] satisfies [string, ProjectTaskDefinition[], RegExp][])(
     'rejects %s',

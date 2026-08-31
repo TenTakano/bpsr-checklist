@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResetCycleSchema } from '../data/resetCycle'
 
 export const MAX_CHARACTER_NAME_LENGTH = 50
 
@@ -15,14 +14,17 @@ export const ProgressValueSchema = z.number().int().min(0)
 
 const IsoDateTimeStringSchema = z.iso.datetime()
 
-export const ResetStateSchema = z.record(
-  ResetCycleSchema,
-  IsoDateTimeStringSchema,
-)
+export const ResetStateSchema = z.strictObject({
+  dailyPeriodStart: IsoDateTimeStringSchema,
+  weeklyPeriodStart: IsoDateTimeStringSchema,
+})
 
 export type ResetState = z.infer<typeof ResetStateSchema>
 
-export const TaskOrderSchema = z.record(ResetCycleSchema, z.array(z.string()))
+export const TaskOrderSchema = z.strictObject({
+  daily: z.array(z.string()),
+  weekly: z.array(z.string()),
+})
 
 export type TaskOrder = z.infer<typeof TaskOrderSchema>
 

@@ -1,16 +1,16 @@
-import { PROJECT_TASKS_BY_RESET_CYCLE } from './projectTasksResolver'
-import { RESET_CYCLES, type ResetCycle } from './resetCycle'
+import { DAILY_TASKS, WEEKLY_TASKS } from './projectTasksResolver'
 
-export type TaskCategory = ResetCycle
+export type TaskCategory = 'daily' | 'weekly'
 
 type TaskCategoryResolver = (taskId: string) => TaskCategory | null
 
 const buildTaskCategoryMap = (): Map<string, TaskCategory> => {
   const map = new Map<string, TaskCategory>()
-  for (const cycle of RESET_CYCLES) {
-    for (const task of PROJECT_TASKS_BY_RESET_CYCLE[cycle]) {
-      map.set(task.id, cycle)
-    }
+  for (const task of DAILY_TASKS) {
+    map.set(task.id, 'daily')
+  }
+  for (const task of WEEKLY_TASKS) {
+    map.set(task.id, 'weekly')
   }
   return map
 }

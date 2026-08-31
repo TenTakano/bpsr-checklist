@@ -20,7 +20,6 @@ export class ProjectTasksValidationError extends Error {}
 const REQUIRED_EXPORT_NAMES = new Set([
   'PROJECT_TASKS',
   'EXCLUDED_UPSTREAM_IDS',
-  'RESET_CYCLE_OVERRIDE_IDS',
 ])
 
 function hasExportModifier(node: ts.HasModifiers): boolean {

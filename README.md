@@ -26,7 +26,7 @@ upstream のタスクが追加・削除された際の手順:
 
 1. `pnpm extract` で `src/data/upstreamTasks.json` を再生成
 2. `src/data/projectTasks.ts` のマッピングを追従して更新する
-   - 追加された upstream id にはエントリを追加する。プロジェクトタスクとして表示する場合は `{ id, upstreamIds, label, color, maxProgress, optional, resetCycle }` の全フィールドを明示指定する（`id` は本家 id から `daily_` / `weekly_` を除いた id、`upstreamIds` は `[<本家 id>]`、`resetCycle` は upstream の所属（daily/weekly）に一致させる。意図的に一致させない場合は `RESET_CYCLE_OVERRIDE_IDS` にも id を追記する）
+   - 追加された upstream id にはエントリを追加する。プロジェクトタスクとして表示する場合は `{ id, upstreamIds, label, color, maxProgress, optional, category }` の全フィールドを明示指定する（`id` は本家 id から `daily_` / `weekly_` を除いた id、`upstreamIds` は `[<本家 id>]`、`category` は upstream の所属（daily/weekly）に一致させる）
    - 意図的にプロジェクトタスクとして出さない upstream id は `EXCLUDED_UPSTREAM_IDS` に追記する（`PROJECT_TASKS` にはエントリを追加しない）
    - 削除された upstream id を参照しているエントリ（`PROJECT_TASKS` / `EXCLUDED_UPSTREAM_IDS` いずれも）は除去する
 3. `src/data/labels.ja.json` も追従して更新する。新規プロジェクトタスクの id をキーとして追加し、削除されたプロジェクトタスクの id のキーを除去する。`EXCLUDED_UPSTREAM_IDS` に含めた id は `PROJECT_TASKS` に存在しないため、対応するキーを `labels.ja.json` に置かない
@@ -42,7 +42,7 @@ upstream のタスクが追加・削除された際の手順:
 
 日本版のみに存在するタスクなど、upstream（`script.js`）に対応するタスクがない独自タスクは `src/data/projectTasks.ts` の `PROJECT_TASKS` に `upstreamIds: []` のエントリとして追加できます。手順:
 
-1. `PROJECT_TASKS` に `upstreamIds: []` のエントリを追加し、`label` / `color` / `maxProgress` / `optional` / `resetCycle`（`'daily' | 'weekly'`）の 5 フィールドをすべて明示指定する
+1. `PROJECT_TASKS` に `upstreamIds: []` のエントリを追加し、`label` / `color` / `maxProgress` / `optional` / `category`（`'daily' | 'weekly'`）の 5 フィールドをすべて明示指定する
 2. `src/data/labels.ja.json` に追加した id をキーとして追記する（追加を怠ると `src/data/taskLabel.test.ts` が失敗する）
 
 独自タスクの必須フィールドの詳細は [docs/task-layers.md](docs/task-layers.md) を参照してください。

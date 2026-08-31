@@ -11,7 +11,7 @@
    - 本家に新規タスクが追加された場合、`src/data/projectTasks.ts` の `PROJECT_TASKS` にプロジェクトタスクの
      エントリを追加する。`ProjectTaskDefinitionSchema`（`src/data/projectTaskSchema.ts`）は
      `strictObject` でフォールバックを持たないため、`id`/`upstreamIds`/`label`/`color`/`maxProgress`/
-     `optional`/`resetCycle` の 7 フィールドすべての明示指定が必須（詳細は
+     `optional`/`category` の 7 フィールドすべての明示指定が必須（詳細は
      [`task-layers.md`](./task-layers.md) を参照）。さらに `src/data/labels.ja.json` にプロジェクト id
      をキーとして日本語訳を追記する
    - 本家の id が変わったタスクについて、同一タスクの改名か別タスクの新設かを判断する。改名と判断した

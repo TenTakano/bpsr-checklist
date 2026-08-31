@@ -2,12 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from './data/projectTasksResolver'
+import { DAILY_TASKS } from './data/projectTasksResolver'
 import { getTaskLabel } from './data/taskLabel'
 import { RECOVERED_MESSAGE } from './store/StoreProvider'
 import { STORAGE_KEY } from './store/persistence'
-
-const DAILY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.daily
 
 describe('App', () => {
   it('BPSR Checklist の見出しを表示する', () => {

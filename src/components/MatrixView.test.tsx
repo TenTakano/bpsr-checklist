@@ -8,7 +8,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import {
   DEFAULT_CHARACTER,
@@ -23,8 +23,6 @@ import type { Store } from '../store/types'
 import { NO_CHARACTERS_MESSAGE, NO_VISIBLE_TASKS_MESSAGE } from './messages'
 import { MatrixView } from './MatrixView'
 
-const DAILY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.daily
-const WEEKLY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.weekly
 const TOGGLE_TASK_ID = DAILY_TASKS[0].id
 if (DAILY_TASKS[0].maxProgress !== 1) {
   throw new Error('DAILY_TASKS[0] must have maxProgress 1 for these tests')

@@ -1,13 +1,11 @@
-import { PERIOD_START_RESOLVERS } from '../data/resetConfig'
-import { RESET_CYCLES, type ResetCycle } from '../data/resetCycle'
-import { getTaskCategory } from '../data/taskLookup'
+import {
+  getCurrentDailyPeriodStart,
+  getCurrentWeeklyPeriodStart,
+} from '../data/resetConfig'
+import { getTaskCategory, type TaskCategory } from '../data/taskLookup'
 import { moveIdInOrder, resolveTaskOrderIds } from '../data/taskOrder'
 import type { Action } from './actions'
-import {
-  MAX_CHARACTER_NAME_LENGTH,
-  type Character,
-  type ResetState,
-} from './schema'
+import { MAX_CHARACTER_NAME_LENGTH, type Character } from './schema'
 import type { Store } from './types'
 
 const normalizeName = (name: string): string | null => {
@@ -58,7 +56,7 @@ interface RemoveCategoriesResult {
 
 const removeCategoriesFromProgress = (
   progress: Store['progress'],
-  categoriesToReset: ReadonlySet<ResetCycle>,
+  categoriesToReset: ReadonlySet<TaskCategory>,
 ): RemoveCategoriesResult => {
   const nextProgress: Store['progress'] = {}
   let changed = false
@@ -86,25 +84,33 @@ const removeCategoriesFromProgress = (
 }
 
 export const evaluateResetState = (store: Store, now: Date): Store => {
-  const currentPeriodStarts = Object.fromEntries(
-    RESET_CYCLES.map((cycle) => [cycle, PERIOD_START_RESOLVERS[cycle](now)]),
-  ) as ResetState
+  const currentDailyPeriodStart = getCurrentDailyPeriodStart(now)
+  const currentWeeklyPeriodStart = getCurrentWeeklyPeriodStart(now)
 
-  const periodUnchanged = RESET_CYCLES.every(
-    (cycle) => store.resetState?.[cycle] === currentPeriodStarts[cycle],
-  )
+  const periodUnchanged =
+    store.resetState?.dailyPeriodStart === currentDailyPeriodStart &&
+    store.resetState?.weeklyPeriodStart === currentWeeklyPeriodStart
 
   if (periodUnchanged) {
     return store
   }
 
-  const categoriesToReset = new Set<ResetCycle>()
-  for (const cycle of RESET_CYCLES) {
-    if (
-      shouldResetPeriod(store.resetState?.[cycle], currentPeriodStarts[cycle])
-    ) {
-      categoriesToReset.add(cycle)
-    }
+  const categoriesToReset = new Set<TaskCategory>()
+  if (
+    shouldResetPeriod(
+      store.resetState?.dailyPeriodStart,
+      currentDailyPeriodStart,
+    )
+  ) {
+    categoriesToReset.add('daily')
+  }
+  if (
+    shouldResetPeriod(
+      store.resetState?.weeklyPeriodStart,
+      currentWeeklyPeriodStart,
+    )
+  ) {
+    categoriesToReset.add('weekly')
   }
 
   let progress = store.progress
@@ -120,7 +126,10 @@ export const evaluateResetState = (store: Store, now: Date): Store => {
 
   return {
     ...store,
-    resetState: currentPeriodStarts,
+    resetState: {
+      dailyPeriodStart: currentDailyPeriodStart,
+      weeklyPeriodStart: currentWeeklyPeriodStart,
+    },
     progress,
   }
 }
@@ -233,17 +242,17 @@ export const reducer = (store: Store, action: Action): Store => {
       if (nextOrder === currentOrder) {
         return store
       }
-      const taskOrder = Object.fromEntries(
-        RESET_CYCLES.map((cycle) => [
-          cycle,
-          cycle === action.section
-            ? nextOrder
-            : resolveTaskOrderIds(cycle, store.taskOrder?.[cycle]),
-        ]),
-      ) as Record<ResetCycle, string[]>
+      const dailyOrder =
+        action.section === 'daily'
+          ? nextOrder
+          : resolveTaskOrderIds('daily', store.taskOrder?.daily)
+      const weeklyOrder =
+        action.section === 'weekly'
+          ? nextOrder
+          : resolveTaskOrderIds('weekly', store.taskOrder?.weekly)
       return {
         ...store,
-        taskOrder,
+        taskOrder: { daily: dailyOrder, weekly: weeklyOrder },
       }
     }
 

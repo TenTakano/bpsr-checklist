@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import {
   addCharacter,
@@ -14,8 +14,6 @@ import {
 } from './actions'
 import { evaluateResetState, reducer } from './reducer'
 
-const DAILY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.daily
-const WEEKLY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.weekly
 const DAILY_TASK_ID = DAILY_TASKS[0].id
 const WEEKLY_TASK_ID = WEEKLY_TASKS[0].id
 const DAILY_TASK_IDS = DAILY_TASKS.map((task) => task.id)
@@ -315,8 +313,8 @@ describe('reducer / evaluateResetState', () => {
     const result = evaluateResetState(store, now)
 
     expect(result.resetState).toEqual({
-      daily: '2026-02-03T20:00:00.000Z',
-      weekly: '2026-02-01T20:00:00.000Z',
+      dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+      weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
     })
     expect(result.progress).toEqual(store.progress)
   })
@@ -325,8 +323,8 @@ describe('reducer / evaluateResetState', () => {
     const now = new Date('2026-02-04T10:00:00.000Z')
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-03T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
     })
     expect(evaluateResetState(store, now)).toBe(store)
@@ -335,8 +333,8 @@ describe('reducer / evaluateResetState', () => {
   it('deletes daily-category entries once the stored daily period is in the past', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
       progress: {
         'char-1': { [DAILY_TASK_ID]: 2, [WEEKLY_TASK_ID]: 1 },
@@ -347,16 +345,16 @@ describe('reducer / evaluateResetState', () => {
 
     expect(result.progress['char-1']).toEqual({ [WEEKLY_TASK_ID]: 1 })
     expect(result.resetState).toEqual({
-      daily: '2026-02-03T20:00:00.000Z',
-      weekly: '2026-02-01T20:00:00.000Z',
+      dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+      weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
     })
   })
 
   it('deletes weekly-category entries once the stored weekly period is in the past', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-03T20:00:00.000Z',
-        weekly: '2026-01-25T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+        weeklyPeriodStart: '2026-01-25T20:00:00.000Z',
       },
       progress: {
         'char-1': { [DAILY_TASK_ID]: 2, [WEEKLY_TASK_ID]: 1 },
@@ -371,8 +369,8 @@ describe('reducer / evaluateResetState', () => {
   it('deletes both daily- and weekly-category entries when both stored periods are in the past', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-01-25T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-01-25T20:00:00.000Z',
       },
       progress: {
         'char-1': { [DAILY_TASK_ID]: 2, [WEEKLY_TASK_ID]: 1 },
@@ -383,16 +381,16 @@ describe('reducer / evaluateResetState', () => {
 
     expect(result.progress['char-1']).toEqual({})
     expect(result.resetState).toEqual({
-      daily: '2026-02-03T20:00:00.000Z',
-      weekly: '2026-02-01T20:00:00.000Z',
+      dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+      weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
     })
   })
 
   it('does not delete anything when the stored period is in the future (clock rollback)', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: '2999-01-01T20:00:00.000Z',
-        weekly: '2999-01-01T20:00:00.000Z',
+        dailyPeriodStart: '2999-01-01T20:00:00.000Z',
+        weeklyPeriodStart: '2999-01-01T20:00:00.000Z',
       },
       progress: {
         'char-1': { [DAILY_TASK_ID]: 2, [WEEKLY_TASK_ID]: 1 },
@@ -406,16 +404,16 @@ describe('reducer / evaluateResetState', () => {
       [WEEKLY_TASK_ID]: 1,
     })
     expect(result.resetState).toEqual({
-      daily: '2026-02-03T20:00:00.000Z',
-      weekly: '2026-02-01T20:00:00.000Z',
+      dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+      weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
     })
   })
 
   it('treats an invalid stored period string as absent (re-init without delete)', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: 'not-a-date',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: 'not-a-date',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
       progress: { 'char-1': { [DAILY_TASK_ID]: 2 } },
     })
@@ -428,8 +426,8 @@ describe('reducer / evaluateResetState', () => {
   it('leaves progress for an unknown taskId untouched but still advances resetState', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
       progress: { 'char-1': { unknown_task: 3 } },
     })
@@ -438,8 +436,8 @@ describe('reducer / evaluateResetState', () => {
 
     expect(result.progress['char-1']).toEqual({ unknown_task: 3 })
     expect(result.resetState).toEqual({
-      daily: '2026-02-03T20:00:00.000Z',
-      weekly: '2026-02-01T20:00:00.000Z',
+      dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+      weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
     })
   })
 
@@ -450,8 +448,8 @@ describe('reducer / evaluateResetState', () => {
     store = {
       ...store,
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
       progress: {
         [alice.id]: { [DAILY_TASK_ID]: 2 },
@@ -471,8 +469,8 @@ describe('reducer / evaluateReset action', () => {
   it('applies the same evaluation as evaluateResetState through the reducer', () => {
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
       progress: { 'char-1': { [DAILY_TASK_ID]: 2 } },
     })
@@ -490,8 +488,8 @@ describe('reducer / setProgress reset evaluation', () => {
 
     const store = storeWithCharacter({
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
       progress: { 'char-1': { [DAILY_TASK_ID]: 2 } },
     })
@@ -500,8 +498,8 @@ describe('reducer / setProgress reset evaluation', () => {
 
     expect(result.progress['char-1']).toEqual({ [DAILY_TASK_ID]: 1 })
     expect(result.resetState).toEqual({
-      daily: '2026-02-03T20:00:00.000Z',
-      weekly: '2026-02-01T20:00:00.000Z',
+      dailyPeriodStart: '2026-02-03T20:00:00.000Z',
+      weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
     })
   })
 })
