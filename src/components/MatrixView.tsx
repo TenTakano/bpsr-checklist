@@ -11,9 +11,8 @@ import { resolveTaskColor } from '../data/taskColors'
 import { getTaskLabel, splitTaskLabel } from '../data/taskLabel'
 import type { TaskCategory } from '../data/taskLookup'
 import { resolveTaskOrder } from '../data/taskOrder'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
-import type { ProjectTask } from '../data/projectTaskSchema'
-import { TASK_SECTIONS } from '../data/taskSections'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
+import type { Task } from '../data/taskSchema'
 import { summarizeCategoryProgress } from '../domain/progressSummary'
 import { isTaskComplete, readProgressValue } from '../domain/taskProgress'
 import { moveTask, setProgress } from '../store/actions'
@@ -51,24 +50,36 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
 
   return (
     <section aria-label="進捗マトリクス" className="matrix-view">
-      {TASK_SECTIONS.map(({ title, cycle }) => (
-        <MatrixSection
-          key={cycle}
-          title={title}
-          section={cycle}
-          tasks={PROJECT_TASKS_BY_RESET_CYCLE[cycle]}
-          taskOrder={store.taskOrder?.[cycle]}
-          hiddenTaskIds={store.hiddenTaskIds}
-          detailedCountTaskIds={store.detailedCountTaskIds}
-          characters={characters}
-          progress={store.progress}
-          isReadOnly={isReadOnly}
-          dispatch={dispatch}
-          onOpenTaskVisibility={(trigger) =>
-            onOpenTaskVisibility(cycle, trigger)
-          }
-        />
-      ))}
+      <MatrixSection
+        title="デイリー"
+        section="daily"
+        tasks={DAILY_TASKS}
+        taskOrder={store.taskOrder?.daily}
+        hiddenTaskIds={store.hiddenTaskIds}
+        detailedCountTaskIds={store.detailedCountTaskIds}
+        characters={characters}
+        progress={store.progress}
+        isReadOnly={isReadOnly}
+        dispatch={dispatch}
+        onOpenTaskVisibility={(trigger) =>
+          onOpenTaskVisibility('daily', trigger)
+        }
+      />
+      <MatrixSection
+        title="ウィークリー"
+        section="weekly"
+        tasks={WEEKLY_TASKS}
+        taskOrder={store.taskOrder?.weekly}
+        hiddenTaskIds={store.hiddenTaskIds}
+        detailedCountTaskIds={store.detailedCountTaskIds}
+        characters={characters}
+        progress={store.progress}
+        isReadOnly={isReadOnly}
+        dispatch={dispatch}
+        onOpenTaskVisibility={(trigger) =>
+          onOpenTaskVisibility('weekly', trigger)
+        }
+      />
     </section>
   )
 }
@@ -76,7 +87,7 @@ export function MatrixView({ onOpenTaskVisibility }: MatrixViewProps) {
 interface MatrixSectionProps {
   title: string
   section: TaskCategory
-  tasks: ProjectTask[]
+  tasks: Task[]
   taskOrder: string[] | undefined
   hiddenTaskIds: string[] | undefined
   detailedCountTaskIds: string[] | undefined
@@ -141,7 +152,7 @@ function MatrixSection({
   // completed it; this deliberately ignores any notion of an "active"
   // character.
   const isRowComplete = useCallback(
-    (task: ProjectTask) =>
+    (task: Task) =>
       characters.every((character) =>
         isTaskComplete(
           readProgressValue(progress, character.id, task.id),
@@ -190,7 +201,7 @@ function MatrixSection({
   }, [normalTaskEntries])
 
   const handleReorderKeyDown =
-    (task: ProjectTask, label: string, position: number) =>
+    (task: Task, label: string, position: number) =>
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
         return
@@ -253,7 +264,7 @@ function MatrixSection({
   }
 
   const renderTaskRow = (
-    task: ProjectTask,
+    task: Task,
     index: number,
     isCompletedRow: boolean,
     // undefined for completed rows: they render no reorder handle, so
@@ -455,7 +466,7 @@ function MatrixSectionHeader({
 
 interface MatrixCellProps {
   character: Character
-  task: ProjectTask
+  task: Task
   value: number
   isDetailedCount: boolean
   isReadOnly: boolean

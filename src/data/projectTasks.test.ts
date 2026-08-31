@@ -1,64 +1,55 @@
 import { describe, expect, it } from 'vitest'
 import {
-  PROJECT_TASKS_BY_RESET_CYCLE,
+  DAILY_TASKS,
+  WEEKLY_TASKS,
   findExcludedIdsOverlappingProjectTasks,
   findNonexistentExcludedUpstreamIds,
   findUnmappedUpstreamIds,
   validateProjectTaskDefinitions,
 } from './projectTasksResolver'
-import {
-  PROJECT_TASKS,
-  EXCLUDED_UPSTREAM_IDS,
-  RESET_CYCLE_OVERRIDE_IDS,
-} from './projectTasks'
+import { PROJECT_TASKS, EXCLUDED_UPSTREAM_IDS } from './projectTasks'
 import upstreamTasksDocumentRaw from './upstreamTasks.json'
-import { UpstreamTasksDocumentSchema } from './taskSchema'
-import type { ProjectTask } from './projectTaskSchema'
+import { UpstreamTasksDocumentSchema, type Task } from './taskSchema'
 
 const upstreamDocument = UpstreamTasksDocumentSchema.parse(
   upstreamTasksDocumentRaw,
 )
 
 // PROJECT_TASKS is the source of truth for label/color/maxProgress/optional/
-// resetCycle (every entry specifies them explicitly), so the expected
-// ProjectTask[] here is built directly from PROJECT_TASKS. This keeps the
-// test from failing on routine upstream content changes (e.g. a label
-// wording tweak) while still catching id-mapping/resetCycle regressions in
+// category (every entry specifies them explicitly), so the expected Task[]
+// here is built directly from PROJECT_TASKS. This keeps the test from
+// failing on routine upstream content changes (e.g. a label wording tweak)
+// while still catching id-mapping/categorization regressions in
 // projectTasksResolver.
-const expectedDaily: ProjectTask[] = []
-const expectedWeekly: ProjectTask[] = []
+const expectedDaily: Task[] = []
+const expectedWeekly: Task[] = []
 for (const definition of PROJECT_TASKS) {
-  const expectedTask: ProjectTask = {
+  const expectedTask: Task = {
     id: definition.id,
     label: definition.label,
     color: definition.color,
     maxProgress: definition.maxProgress,
     optional: definition.optional,
-    resetCycle: definition.resetCycle,
   }
 
-  if (definition.resetCycle === 'daily') {
+  if (definition.category === 'daily') {
     expectedDaily.push(expectedTask)
   } else {
     expectedWeekly.push(expectedTask)
   }
 }
 
-describe('PROJECT_TASKS_BY_RESET_CYCLE (resolved from PROJECT_TASKS)', () => {
-  it("resolves PROJECT_TASKS into PROJECT_TASKS_BY_RESET_CYCLE using each entry's own label/color/maxProgress/optional/resetCycle", () => {
-    expect(PROJECT_TASKS_BY_RESET_CYCLE.daily).toEqual(expectedDaily)
-    expect(PROJECT_TASKS_BY_RESET_CYCLE.weekly).toEqual(expectedWeekly)
+describe('DAILY_TASKS / WEEKLY_TASKS (resolved from PROJECT_TASKS)', () => {
+  it("resolves PROJECT_TASKS into DAILY_TASKS/WEEKLY_TASKS using each entry's own label/color/maxProgress/optional/category", () => {
+    expect(DAILY_TASKS).toEqual(expectedDaily)
+    expect(WEEKLY_TASKS).toEqual(expectedWeekly)
   })
 })
 
 describe('PROJECT_TASKS / EXCLUDED_UPSTREAM_IDS invariants against upstreamTasks.json', () => {
   it('does not throw when validating PROJECT_TASKS against the upstream document', () => {
     expect(() =>
-      validateProjectTaskDefinitions(
-        PROJECT_TASKS,
-        upstreamDocument,
-        RESET_CYCLE_OVERRIDE_IDS,
-      ),
+      validateProjectTaskDefinitions(PROJECT_TASKS, upstreamDocument),
     ).not.toThrow()
   })
 

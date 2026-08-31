@@ -1,13 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
+import { DAILY_TASKS, WEEKLY_TASKS } from '../data/projectTasksResolver'
 import { emptyStore, storeWithCharacter } from '../test/fixtures'
 import { StoreContext, type StoreContextValue } from '../store/context'
 import type { Character } from '../store/schema'
 import { SummaryPanel } from './SummaryPanel'
 
-const DAILY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.daily
-const WEEKLY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.weekly
 const DAILY_TASK_IDS = DAILY_TASKS.map((task) => task.id)
 const DAILY_TARGET_TASK = DAILY_TASKS[0]
 const DAILY_HIDDEN_TASK_IDS = DAILY_TASK_IDS.filter(

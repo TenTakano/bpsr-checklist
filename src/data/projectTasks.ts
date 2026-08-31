@@ -1,7 +1,7 @@
 import type { ProjectTaskDefinition } from './projectTaskSchema'
 
 // Project ids drop the upstream daily_/weekly_ prefix. This layer is the
-// source of truth for label/color/maxProgress/optional/resetCycle: every
+// source of truth for label/color/maxProgress/optional/category: every
 // entry specifies them explicitly, so upstreamTasks.json content changes
 // (label wording, etc.) never silently change what the app displays. See
 // docs/task-layers.md.
@@ -9,7 +9,7 @@ export const PROJECT_TASKS = [
   {
     id: 'mystery_store',
     upstreamIds: ['daily_mystery_store'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🎁 Mystery Store (Buy what you want) | +1 refresh with Season Pass',
     color: 'gold',
     maxProgress: 1,
@@ -18,7 +18,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_checkin',
     upstreamIds: ['daily_guild_checkin'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🏛️ Guild Check-In & Cargo (Laura & Douglas in Guild Center)',
     color: 'orange',
     maxProgress: 1,
@@ -27,7 +27,7 @@ export const PROJECT_TASKS = [
   {
     id: 'unstable_clear',
     upstreamIds: ['daily_unstable_clear'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🌀 Unstable Space (Clear)',
     color: 'purple',
     maxProgress: 2,
@@ -36,7 +36,7 @@ export const PROJECT_TASKS = [
   {
     id: 'bureau_commissions',
     upstreamIds: ['daily_bureau_commissions'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '📋 Bureau Commissions | Can skip up to 2 days (9 Commissions)',
     color: 'green',
     maxProgress: 3,
@@ -45,7 +45,7 @@ export const PROJECT_TASKS = [
   {
     id: 'homestead_commissions',
     upstreamIds: ['daily_homestead_commissions'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🏡 Homestead Commissions | Can skip up to 2 days (9 Commissions)',
     color: 'green',
     maxProgress: 3,
@@ -54,7 +54,7 @@ export const PROJECT_TASKS = [
   {
     id: 'world_boss_keys',
     upstreamIds: ['daily_world_boss_keys'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🔑 World Boss Keys | Can skip up to 2 days (6 Keys)',
     color: 'brown',
     maxProgress: 2,
@@ -63,7 +63,7 @@ export const PROJECT_TASKS = [
   {
     id: 'elite_boss_keys',
     upstreamIds: ['daily_elite_boss_keys'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🗝️ Elite Boss Keys | Can skip up to 2 days (6 Keys)',
     color: 'brown',
     maxProgress: 2,
@@ -72,7 +72,7 @@ export const PROJECT_TASKS = [
   {
     id: 'focus',
     upstreamIds: ['daily_focus'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '⭐ Life Skill Focus | Can skip up to 4 days (2000 Focus)',
     color: 'yellow',
     maxProgress: 1,
@@ -81,7 +81,7 @@ export const PROJECT_TASKS = [
   {
     id: 'season_pass_activity',
     upstreamIds: ['daily_season_pass_activity'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🏆 Season Pass Activity (Earn 500 Activity Merits)',
     color: 'yellow',
     maxProgress: 1,
@@ -90,7 +90,7 @@ export const PROJECT_TASKS = [
   {
     id: 'musician_challenge',
     upstreamIds: ['daily_musician_challenge'],
-    resetCycle: 'daily',
+    category: 'daily',
     label: '🎵 Musician (Complete the Daily Challenge)',
     color: 'grey',
     maxProgress: 1,
@@ -99,7 +99,7 @@ export const PROJECT_TASKS = [
   {
     id: 'pioneer_awards',
     upstreamIds: ['weekly_pioneer_awards'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🏅 Pioneer Awards (Stella at the Pioneer Bureau)',
     color: 'yellow',
     maxProgress: 1,
@@ -108,7 +108,7 @@ export const PROJECT_TASKS = [
   {
     id: 'reclaim_hub',
     upstreamIds: ['weekly_reclaim_hub'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '⏰ Reclaim Hub (Claim missed rewards from last week)',
     color: 'gold',
     maxProgress: 1,
@@ -117,7 +117,7 @@ export const PROJECT_TASKS = [
   {
     id: 'starland_quests',
     upstreamIds: ['weekly_starland_quests'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '✨ Starland (Complete the Weekly Quests)',
     color: 'blue',
     maxProgress: 1,
@@ -126,7 +126,7 @@ export const PROJECT_TASKS = [
   {
     id: 'illusion_essence',
     upstreamIds: ['weekly_illusion_essence'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🪞 Illusion-Shroud Woods (Reach the Illusion-Shroud Essence cap)',
     color: 'grey',
     maxProgress: 1,
@@ -135,7 +135,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_activity',
     upstreamIds: ['weekly_guild_activity'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label:
       '👑 Guild Activity Rewards (Reach 7000/7000 Activity Merits & Claim Rewards)',
     color: 'orange',
@@ -145,7 +145,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_hunt',
     upstreamIds: ['weekly_guild_hunt'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🏹 Guild Hunt (Clear x2)',
     color: 'orange',
     maxProgress: 3,
@@ -154,7 +154,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_dance',
     upstreamIds: ['weekly_guild_dance'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '💃 Guild Dance (Participate)',
     color: 'orange',
     maxProgress: 1,
@@ -163,7 +163,7 @@ export const PROJECT_TASKS = [
   {
     id: 'world_boss_crusade',
     upstreamIds: ['weekly_world_boss_crusade'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '⚔️ World Boss Crusade (Earn 1200 Points)',
     color: 'brown',
     maxProgress: 3,
@@ -172,7 +172,7 @@ export const PROJECT_TASKS = [
   {
     id: 'dungeon_encounter',
     upstreamIds: ['weekly_dungeon_encounter'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🐷 Fight the Squeaky Boarlet (Random Dungeon Encounter)',
     color: 'grey',
     maxProgress: 5,
@@ -181,7 +181,7 @@ export const PROJECT_TASKS = [
   {
     id: 'stimen_vaults',
     upstreamIds: ['weekly_stimen_vaults'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '💎 Stimen Vaults (Clear the last floor available)',
     color: 'pearl',
     maxProgress: 1,
@@ -190,7 +190,7 @@ export const PROJECT_TASKS = [
   {
     id: 'season_store_elite',
     upstreamIds: ['weekly_season_store_elite'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label:
       '🛒 -Echoes of Ember Elite Store- (Buy Reforge Stones, Alloy & Select Boxes)',
     color: 'gold',
@@ -200,7 +200,7 @@ export const PROJECT_TASKS = [
   {
     id: 'season_store',
     upstreamIds: ['weekly_season_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '📦 -Echoes of Ember Store- (Buy what you want)',
     color: 'grey',
     maxProgress: 1,
@@ -209,7 +209,7 @@ export const PROJECT_TASKS = [
   {
     id: 'guild_store',
     upstreamIds: ['weekly_guild_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label:
       '🔰 Guild Store (Buy Focus Potions, Supply Chests, Moss/Burl/Meteorite Shards)',
     color: 'gold',
@@ -219,7 +219,7 @@ export const PROJECT_TASKS = [
   {
     id: 'friendship_store',
     upstreamIds: ['weekly_friendship_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🤝 Friendship Store (Earn 2000 Friendship Points)',
     color: 'gold',
     maxProgress: 1,
@@ -228,7 +228,7 @@ export const PROJECT_TASKS = [
   {
     id: 'event_store',
     upstreamIds: ['weekly_event_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🎉 Event Store (If available)',
     color: 'gold',
     maxProgress: 1,
@@ -237,7 +237,7 @@ export const PROJECT_TASKS = [
   {
     id: 'orb_store',
     upstreamIds: ['weekly_orb_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🔴 Orb Store (Buy what you want)',
     color: 'grey',
     maxProgress: 1,
@@ -246,7 +246,7 @@ export const PROJECT_TASKS = [
   {
     id: 'gear_exchange_store',
     upstreamIds: ['weekly_gear_exchange_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🔄 Gear Exchange Store (Buy Luno Pouches & Reforge Stones)',
     color: 'gold',
     maxProgress: 1,
@@ -255,7 +255,7 @@ export const PROJECT_TASKS = [
   {
     id: 'reputation_store',
     upstreamIds: ['weekly_reputation_store'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '📈 Regional Reputation Stores (Buy Will Wish Coins)',
     color: 'gold',
     maxProgress: 1,
@@ -264,7 +264,7 @@ export const PROJECT_TASKS = [
   {
     id: 's1_raid',
     upstreamIds: ['weekly_s1_s2_raids'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🛡️ S1 Raid (35220+ Ability Score)',
     color: 'dark_purple',
     maxProgress: 3,
@@ -273,7 +273,7 @@ export const PROJECT_TASKS = [
   {
     id: 's2_raid',
     upstreamIds: ['weekly_s1_s2_raids'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🛡️ S2 Raid (35220+ Ability Score)',
     color: 'dark_purple',
     maxProgress: 3,
@@ -282,7 +282,7 @@ export const PROJECT_TASKS = [
   {
     id: 's3_raids_easy',
     upstreamIds: ['weekly_s3_raids_easy'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label:
       '🌀 [S3] Illusions Raids -Easy- (1970+ Illusion Score | 47650+ Ability Score)',
     color: 'dark_purple',
@@ -292,7 +292,7 @@ export const PROJECT_TASKS = [
   {
     id: 's3_raids_hard',
     upstreamIds: ['weekly_s3_raids_hard'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label:
       '🌀 [S3] Illusions Raids -Hard- (2910+ Illusion Score | 56110+ Ability Score)',
     color: 'dark_purple',
@@ -302,7 +302,7 @@ export const PROJECT_TASKS = [
   {
     id: 'musician_challenges',
     upstreamIds: ['weekly_musician_challenges'],
-    resetCycle: 'weekly',
+    category: 'weekly',
     label: '🎶 Musician (Complete the Weekly Challenges)',
     color: 'grey',
     maxProgress: 1,
@@ -319,10 +319,3 @@ export const EXCLUDED_UPSTREAM_IDS: string[] = [
   'weekly_sigil_store',
   'weekly_honor_store',
 ]
-
-// Project ids whose resetCycle is intentionally allowed to differ from the
-// reset cycle their upstreamIds resolve to. An id must be listed here
-// explicitly to suppress the mismatch check in
-// createProjectTaskDefinitionsSchema; any other mismatch still errors so the
-// upstream-sync bot's resetCycle typos continue to be caught.
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []

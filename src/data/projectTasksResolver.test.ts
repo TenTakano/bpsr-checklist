@@ -18,7 +18,7 @@ const buildDefinition = (
   color: 'blue',
   maxProgress: 2,
   optional: false,
-  resetCycle: 'daily',
+  category: 'daily',
   ...overrides,
 })
 
@@ -63,7 +63,7 @@ describe('resolveProjectTasks', () => {
         color: 'gold',
         maxProgress: 1,
         optional: false,
-        resetCycle: 'weekly',
+        category: 'weekly',
       },
     ]
     const result = resolveProjectTasks(definitions)
@@ -75,7 +75,6 @@ describe('resolveProjectTasks', () => {
         color: 'blue',
         maxProgress: 2,
         optional: false,
-        resetCycle: 'daily',
       },
     ])
     expect(result.weekly).toEqual([
@@ -85,7 +84,6 @@ describe('resolveProjectTasks', () => {
         color: 'gold',
         maxProgress: 1,
         optional: false,
-        resetCycle: 'weekly',
       },
     ])
   })
@@ -107,7 +105,6 @@ describe('resolveProjectTasks', () => {
       color: 'purple',
       maxProgress: 9,
       optional: true,
-      resetCycle: 'daily',
     })
   })
 
@@ -120,7 +117,7 @@ describe('resolveProjectTasks', () => {
         color: 'blue',
         maxProgress: 5,
         optional: false,
-        resetCycle: 'daily',
+        category: 'daily',
       },
     ]
     const result = resolveProjectTasks(definitions)
@@ -132,7 +129,6 @@ describe('resolveProjectTasks', () => {
         color: 'blue',
         maxProgress: 5,
         optional: false,
-        resetCycle: 'daily',
       },
     ])
   })
@@ -146,7 +142,7 @@ describe('resolveProjectTasks', () => {
         color: 'purple',
         maxProgress: 3,
         optional: true,
-        resetCycle: 'weekly',
+        category: 'weekly',
       },
     ]
     const result = resolveProjectTasks(definitions)
@@ -158,7 +154,6 @@ describe('resolveProjectTasks', () => {
         color: 'purple',
         maxProgress: 3,
         optional: true,
-        resetCycle: 'weekly',
       },
     ])
     expect(result.daily).toEqual([])
@@ -174,7 +169,7 @@ describe('resolveProjectTasks', () => {
         color: 'purple',
         maxProgress: 1,
         optional: false,
-        resetCycle: 'daily',
+        category: 'daily',
       },
     ]
     const result = resolveProjectTasks(definitions)
@@ -194,7 +189,7 @@ describe('resolveProjectTasks', () => {
         color: 'blue',
         maxProgress: 1,
         optional: false,
-        resetCycle: 'daily',
+        category: 'daily',
       },
     ]
     expect(() =>
@@ -225,7 +220,7 @@ describe('validateProjectTaskDefinitions', () => {
         color: 'blue',
         maxProgress: 1,
         optional: false,
-        resetCycle: 'daily',
+        category: 'daily',
       },
     ]
     expect(() =>
@@ -233,7 +228,7 @@ describe('validateProjectTaskDefinitions', () => {
     ).toThrow(/daily_does_not_exist/)
   })
 
-  it('reports the unknown-upstreamId error before the resetCycle-mismatch error when a definition has both problems', () => {
+  it('reports the unknown-upstreamId error before the category-mismatch error when a definition has both problems', () => {
     const definitions: ProjectTaskDefinition[] = [
       {
         id: 'daily_bad',
@@ -242,10 +237,10 @@ describe('validateProjectTaskDefinitions', () => {
         color: 'blue',
         maxProgress: 2,
         optional: false,
-        // Mismatches daily_a's resolved cycle ('daily') too, so this
+        // Mismatches daily_a's resolved category ('daily') too, so this
         // definition is invalid for two reasons: the reference-integrity
         // check must win and report the unknown upstreamId.
-        resetCycle: 'weekly',
+        category: 'weekly',
       },
     ]
     expect(() =>
@@ -268,28 +263,6 @@ describe('validateProjectTaskDefinitions', () => {
       validateProjectTaskDefinitions(definitions, buildUpstreamDocument()),
     ).toThrow()
   })
-
-  it('does not report a resetCycle mismatch for an id listed in resetCycleOverrideIds', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      buildDefinition({ resetCycle: 'weekly' }),
-    ]
-    expect(() =>
-      validateProjectTaskDefinitions(definitions, buildUpstreamDocument(), [
-        'daily_a',
-      ]),
-    ).not.toThrow()
-  })
-
-  it('still throws a resetCycle mismatch for an id not listed in resetCycleOverrideIds, even when other ids are overridden', () => {
-    const definitions: ProjectTaskDefinition[] = [
-      buildDefinition({ resetCycle: 'weekly' }),
-    ]
-    expect(() =>
-      validateProjectTaskDefinitions(definitions, buildUpstreamDocument(), [
-        'some_other_id',
-      ]),
-    ).toThrow(/resetCycle/)
-  })
 })
 
 describe('findUnmappedUpstreamIds', () => {
@@ -300,7 +273,7 @@ describe('findUnmappedUpstreamIds', () => {
       buildDefinition({
         id: 'weekly_a',
         upstreamIds: ['weekly_a'],
-        resetCycle: 'weekly',
+        category: 'weekly',
       }),
     ]
     expect(
@@ -314,7 +287,7 @@ describe('findUnmappedUpstreamIds', () => {
       buildDefinition({
         id: 'weekly_a',
         upstreamIds: ['weekly_a'],
-        resetCycle: 'weekly',
+        category: 'weekly',
       }),
     ]
     expect(

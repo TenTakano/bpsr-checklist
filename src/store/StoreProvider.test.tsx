@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from '../data/projectTasksResolver'
+import { DAILY_TASKS } from '../data/projectTasksResolver'
 import { addCharacter } from './actions'
 import { useStore } from './context'
 import {
@@ -17,7 +17,6 @@ import {
   StoreProvider,
 } from './StoreProvider'
 
-const DAILY_TASKS = PROJECT_TASKS_BY_RESET_CYCLE.daily
 const DAILY_TASK_ID = DAILY_TASKS[0].id
 
 function Probe() {
@@ -38,7 +37,7 @@ function ResetProbe() {
     <div>
       <p data-testid="status">{status}</p>
       <p data-testid="daily-period-start">
-        {store.resetState?.daily ?? 'none'}
+        {store.resetState?.dailyPeriodStart ?? 'none'}
       </p>
     </div>
   )
@@ -304,8 +303,8 @@ describe('StoreProvider / reset backup wiring', () => {
       ],
       progress: { 'char-1': { [DAILY_TASK_ID]: 2 } },
       resetState: {
-        daily: '2026-02-02T20:00:00.000Z',
-        weekly: '2026-02-01T20:00:00.000Z',
+        dailyPeriodStart: '2026-02-02T20:00:00.000Z',
+        weeklyPeriodStart: '2026-02-01T20:00:00.000Z',
       },
     })
     localStorage.setItem(STORAGE_KEY, raw)

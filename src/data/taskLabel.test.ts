@@ -5,7 +5,7 @@ import {
   type SplitTaskLabel,
 } from './taskLabel.ts'
 import labelsJa from './labels.ja.json'
-import { PROJECT_TASKS_BY_RESET_CYCLE } from './projectTasksResolver.ts'
+import { DAILY_TASKS, WEEKLY_TASKS } from './projectTasksResolver.ts'
 import type { Task } from './taskSchema.ts'
 
 const buildTask = (overrides: Partial<Task> = {}): Task => ({
@@ -18,10 +18,7 @@ const buildTask = (overrides: Partial<Task> = {}): Task => ({
 })
 
 const collectProjectTaskIds = (): string[] =>
-  [
-    ...PROJECT_TASKS_BY_RESET_CYCLE.daily,
-    ...PROJECT_TASKS_BY_RESET_CYCLE.weekly,
-  ].map((task) => task.id)
+  [...DAILY_TASKS, ...WEEKLY_TASKS].map((task) => task.id)
 
 describe('getTaskLabel', () => {
   it('既知の id には日本語ラベルを返す', () => {

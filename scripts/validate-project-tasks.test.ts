@@ -13,8 +13,6 @@ function buildFixture(projectTasksBody: string): string {
 export const PROJECT_TASKS = ${projectTasksBody} satisfies ProjectTaskDefinition[]
 
 export const EXCLUDED_UPSTREAM_IDS: string[] = []
-
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
 `
 }
 
@@ -53,7 +51,6 @@ import type { ProjectTaskDefinition } from './projectTaskSchema'
 
 export const PROJECT_TASKS = [] satisfies ProjectTaskDefinition[]
 export const EXCLUDED_UPSTREAM_IDS: string[] = []
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
 `
 
     expect(() => validateProjectTasksSource(source)).toThrow(
@@ -68,7 +65,6 @@ console.log('hi')
 
 export const PROJECT_TASKS = [] satisfies ProjectTaskDefinition[]
 export const EXCLUDED_UPSTREAM_IDS: string[] = []
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
 `
 
     expect(() => validateProjectTasksSource(source)).toThrow(
@@ -85,7 +81,6 @@ function helper() {
 
 export const PROJECT_TASKS = [] satisfies ProjectTaskDefinition[]
 export const EXCLUDED_UPSTREAM_IDS: string[] = []
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
 `
 
     expect(() => validateProjectTasksSource(source)).toThrow(
@@ -98,7 +93,6 @@ export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
 
 export const PROJECT_TASKS = [] satisfies ProjectTaskDefinition[]
 export const EXCLUDED_UPSTREAM_IDS: string[] = []
-export const RESET_CYCLE_OVERRIDE_IDS: string[] = []
 export const EXTRA = 'x'
 `
 
