@@ -124,11 +124,31 @@ const extraTopLevelFields = (
     ),
   )
 
+// PR #109 (`18675be`) briefly persisted resetState under a { daily, weekly }
+// shape before being reverted in PR #132. This renames resetState saved
+// during that window back to the { dailyPeriodStart, weeklyPeriodStart }
+// shape so it can still be validated below. This is a temporary rescue for
+// data polluted during the #109-#132 window, not permanent dual-format
+// support.
+const renameLegacyResetStateKeys = (raw: unknown): unknown => {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return raw
+  }
+  const record = raw as Record<string, unknown>
+  if (!Object.hasOwn(record, 'daily') && !Object.hasOwn(record, 'weekly')) {
+    return raw
+  }
+  return {
+    dailyPeriodStart: record.daily,
+    weeklyPeriodStart: record.weekly,
+  }
+}
+
 // An invalid resetState degrades to "absent" (undefined) rather than
 // rejecting the whole store, so the reducer's evaluateResetState treats it
 // as needing initialization only, never a destructive reset.
 const rescueResetState = (raw: unknown): Store['resetState'] => {
-  const result = ResetStateSchema.safeParse(raw)
+  const result = ResetStateSchema.safeParse(renameLegacyResetStateKeys(raw))
   return result.success ? result.data : undefined
 }
 

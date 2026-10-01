@@ -361,6 +361,154 @@ describe('loadStore', () => {
     }
   })
 
+  it('rescues a resetState stored under the PR #109 { daily, weekly } key shape', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      resetState: {
+        daily: '2026-01-01T19:00:00.000Z',
+        weekly: '2025-12-28T19:00:00.000Z',
+      },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toEqual({
+        dailyPeriodStart: '2026-01-01T19:00:00.000Z',
+        weeklyPeriodStart: '2025-12-28T19:00:00.000Z',
+      })
+    }
+  })
+
+  it('falls back to an absent resetState when only the legacy daily key is present', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      resetState: { daily: '2026-01-01T19:00:00.000Z' },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent resetState when only the legacy weekly key is present', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [],
+      progress: {},
+      resetState: { weekly: '2025-12-28T19:00:00.000Z' },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+    }
+  })
+
+  it('falls back to an absent resetState when the rescued { daily, weekly } values are not valid date strings', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      resetState: { daily: 'not-a-date', weekly: '2025-12-28T19:00:00.000Z' },
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('falls back to an absent resetState when it is null', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      resetState: null,
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('falls back to an absent resetState when it is an array', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      resetState: [],
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
+  it('falls back to an absent resetState when it is a primitive', () => {
+    const raw = JSON.stringify({
+      schemaVersion: 1,
+      taskDataVersion: 'commit-1',
+      characters: [
+        { id: 'char-1', name: 'Alice', createdAt: '2026-01-01T00:00:00.000Z' },
+      ],
+      progress: { 'char-1': { daily_a: 2 } },
+      resetState: 'not-an-object',
+    })
+    localStorage.setItem(STORAGE_KEY, raw)
+
+    const result = loadStore()
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      expect(result.store.resetState).toBeUndefined()
+      expect(result.store.characters).toHaveLength(1)
+      expect(result.store.progress).toEqual({ 'char-1': { daily_a: 2 } })
+    }
+  })
+
   it('round-trips a valid taskOrder through save and load', () => {
     const store = storeWithCharacter({
       progress: {},
