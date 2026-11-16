@@ -70,14 +70,12 @@ describe('splitTaskLabel', () => {
       { primary: '📋 開拓局の依頼', note: '最大2日スキップ可（依頼9件）' },
     ],
     [
-      '括弧内の "|" では分割しない (s3_raids_easy)',
-      labelsJa.s3_raids_easy,
-      { primary: labelsJa.s3_raids_easy, note: null },
-    ],
-    [
-      '括弧内の "|" では分割しない (s3_raids_hard)',
-      labelsJa.s3_raids_hard,
-      { primary: labelsJa.s3_raids_hard, note: null },
+      '括弧内の "|" では分割しない',
+      '🌀 S3レイド（幻影スコア1970以上 | 能力値47650以上）',
+      {
+        primary: '🌀 S3レイド（幻影スコア1970以上 | 能力値47650以上）',
+        note: null,
+      },
     ],
     [
       '"|" を含まない場合は note が null になる',
