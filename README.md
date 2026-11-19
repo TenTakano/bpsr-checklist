@@ -49,7 +49,7 @@ upstream のタスクが追加・削除された際の手順:
 
 ### upstream 定期同期 workflow
 
-上記の手動更新手順を日次で自動実行する GitHub Actions workflow を用意しています。動作概要・必要なリポジトリ設定は [docs/upstream-sync.md](docs/upstream-sync.md) を参照してください。
+upstream のタスク定義の変更を日次で検知し、差分を Issue で知らせる GitHub Actions workflow を用意しています。取り込みは Issue を見て上記の手順で手動で行います。動作概要は [docs/upstream-sync.md](docs/upstream-sync.md) を参照してください。
 
 ## 開発
 
