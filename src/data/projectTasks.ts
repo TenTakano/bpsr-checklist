@@ -161,15 +161,6 @@ export const PROJECT_TASKS = [
     optional: false,
   },
   {
-    id: 'world_boss_crusade',
-    upstreamIds: ['weekly_world_boss_crusade'],
-    category: 'weekly',
-    label: '⚔️ World Boss Crusade (Earn 1200 Points)',
-    color: 'brown',
-    maxProgress: 3,
-    optional: false,
-  },
-  {
     id: 'dungeon_encounter',
     upstreamIds: ['weekly_dungeon_encounter'],
     category: 'weekly',
@@ -280,21 +271,10 @@ export const PROJECT_TASKS = [
     optional: false,
   },
   {
-    id: 's3_raids_easy',
-    upstreamIds: ['weekly_s3_raids_easy'],
+    id: 's3_raid',
+    upstreamIds: ['weekly_s3_raids_easy', 'weekly_s3_raids_hard'],
     category: 'weekly',
-    label:
-      '🌀 [S3] Illusions Raids -Easy- (1970+ Illusion Score | 47650+ Ability Score)',
-    color: 'dark_purple',
-    maxProgress: 3,
-    optional: false,
-  },
-  {
-    id: 's3_raids_hard',
-    upstreamIds: ['weekly_s3_raids_hard'],
-    category: 'weekly',
-    label:
-      '🌀 [S3] Illusions Raids -Hard- (2910+ Illusion Score | 56110+ Ability Score)',
+    label: '🌀 [S3] Illusions Raid -Regression-',
     color: 'dark_purple',
     maxProgress: 3,
     optional: false,
@@ -318,4 +298,6 @@ export const EXCLUDED_UPSTREAM_IDS: string[] = [
   'weekly_module_exchange',
   'weekly_sigil_store',
   'weekly_honor_store',
+  // Closed temporarily in the JP S4 (rewards are mailed weekly instead).
+  'weekly_world_boss_crusade',
 ]
